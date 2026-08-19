@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% macro status_badge(status) -%}
+  {% if status == 'match' %}<span class="badge ok">✔ זהה במלואו</span>
+  {% elif status == 'mismatch' %}<span class="badge bad">✖ נמצאו אי-התאמות</span>
+  {% elif status == 'missing_pdf' %}<span class="badge warn">קיים ב-DAT בלבד (חסר PDF)</span>
+  {% elif status == 'missing_dat' %}<span class="badge warn">קיים ב-PDF בלבד (חסר ב-DAT)</span>
+  {% else %}<span class="badge bad">שגיאה בפענוח</span>{% endif %}
+{%- endmacro %}
+
+{% block content %}
+  <div class="card">
+    <h2>תוצאות השוואה</h2>
+    <p class="muted">קובץ DAT: {{ dat_name }}</p>
+    <div class="stats">
+      <div class="stat"><b>{{ summary.total }}</b>מספרי זהות</div>
+      <div class="stat"><b style="color:#047857">{{ summary.match }}</b>זהים במלואם</div>
+      <div class="stat"><b style="color:#b91c1c">{{ summary.mismatch }}</b>עם אי-התאמות</div>
+      <div class="stat"><b style="color:#b45309">{{ summary.missing }}</b>חסרים בצד אחד</div>
+      {% if summary.error %}<div class="stat"><b style="color:#b91c1c">{{ summary.error }}</b>שגיאות</div>{% endif %}
+    </div>
+    {% for w in warnings %}<div class="alert warn">{{ w }}</div>{% endfor %}
+    <p style="margin-bottom:0"><a href="/">&rarr; השוואה חדשה</a></p>
+  </div>
+
+  {% for r in results %}
+  <details class="id-block" {% if r.status not in ('match',) %}open{% endif %}>
+    <summary>
+      <span class="id">ת"ז {{ r.id_number }}</span>
+      {{ status_badge(r.status) }}
+      {% if r.total_compared %}
+        <span class="muted">{{ r.matched }} מתוך {{ r.total_compared }} תקופות זהות ({{ r.percent }}%)</span>
+      {% endif %}
+      {% if r.pdf_file %}<span class="muted">{{ r.pdf_file }}</span>{% endif %}
+    </summary>
+    <div class="detail-body">
+      {% for e in r.errors %}<div class="alert error">{{ e }}</div>{% endfor %}
+      {% for w in r.warnings %}<div class="alert warn">{{ w }}</div>{% endfor %}
+
+      {% if r.rows %}
+      <table>
+        <tr>
+          <th>מתאריך</th><th>עד תאריך</th><th>סטטוס</th>
+          <th>סוג תקופה</th><th>אורך שירות (חודשים)</th><th>סוג זכויות</th><th>היקף משרה</th>
+          <th>פירוט אי-התאמה</th>
+        </tr>
+        {% for row in r.rows %}
+        <tr class="{% if row.status == 'diff' %}row-diff{% elif row.status in ('dat_only','pdf_only') %}row-side{% endif %}">
+          <td>{{ row.start_display }}</td>
+          <td>{{ row.end_display }}</td>
+          <td>
+            {% if row.status == 'match' %}<span class="badge ok">זהה</span>
+            {% elif row.status == 'diff' %}<span class="badge bad">שונה</span>
+            {% elif row.status == 'dat_only' %}<span class="badge warn">רק ב-DAT</span>
+            {% else %}<span class="badge warn">רק ב-PDF</span>{% endif %}
+          </td>
+          {% set src = row.pdf_row or {} %}
+          {% set dat = row.dat_row or {} %}
+          <td>{{ src.tkufa_label or dat.sug_tkufa_teur or '' }}</td>
+          <td>{{ '%g'|format(src.months if src else dat.months) if (src or dat) else '' }}</td>
+          <td>{{ src.zchuyot_label or dat.sug_zchuyot_teur or '' }}</td>
+          <td>{{ '%.3f'|format(src.heikef if src else dat.heikef) if (src or dat) else '' }}</td>
+          <td class="diff-vals">
+            {% if row.status == 'diff' %}
+              {% for d in row.diffs %}
+                <div><b>{{ d.field_name }}</b>: ב-PDF: {{ d.pdf_value }} | ב-DAT: {{ d.dat_value }}</div>
+              {% endfor %}
+            {% elif row.status == 'dat_only' %}
+              התקופה קיימת בקובץ ה-DAT אך לא נמצאה בטבלת ה-PDF
+            {% elif row.status == 'pdf_only' %}
+              התקופה מופיעה ב-PDF אך לא נמצאה בקובץ ה-DAT
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% endif %}
+
+      {% if r.excluded %}
+        <p class="muted" style="margin-bottom:4px">
+          שורות "עזיבה" (סוג תקופה 4) בקובץ ה-DAT — אינן מודפסות בדו"ח ולכן לא נכללו בהשוואה:
+        </p>
+        <table>
+          <tr><th>מתאריך</th><th>עד תאריך</th><th>אורך שירות</th><th>סוג זכויות</th></tr>
+          {% for ex in r.excluded %}
+          <tr>
+            <td>{{ ex.start[:2] }}/{{ ex.start[2:4] }}/{{ ex.start[4:] }}</td>
+            <td>{{ ex.end[:2] }}/{{ ex.end[2:4] }}/{{ ex.end[4:] }}</td>
+            <td>{{ '%g'|format(ex.months) }}</td>
+            <td>{{ ex.sug_zchuyot_teur }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      {% endif %}
+    </div>
+  </details>
+  {% endfor %}
+{% endblock %}

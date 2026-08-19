@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+  {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+  <form class="card" action="/compare" method="post" enctype="multipart/form-data">
+    <h2>העלאת קבצים להשוואה</h2>
+    <p>
+      <label><b>קובץ DAT</b> (ממשק לאוצר):</label><br>
+      <input type="file" name="dat_file" accept=".dat,.txt" required>
+    </p>
+    <p>
+      <label><b>קבצי PDF</b> (דו"ח סיכום נתוני פרישה — אפשר לבחור כמה יחד):</label><br>
+      <input type="file" name="pdf_files" accept=".pdf" multiple required>
+    </p>
+    <button class="btn" type="submit">בצע השוואה</button>
+    <p class="muted">
+      ההשוואה מתבצעת לפי מספר זהות: תקופות העבודה בקובץ ה-DAT מושוות לטבלה בקובץ ה-PDF
+      של אותה תעודת זהות. שורות "עזיבה" (סוג תקופה 4) אינן מודפסות בדו"ח ולכן מוצגות לידיעה בלבד.
+    </p>
+  </form>
+{% endblock %}

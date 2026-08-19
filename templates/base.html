@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>השוואת נתוני תקופות עבודה</title>
+  <style>
+    :root {
+      --bg: #f6f7fb; --card: #ffffff; --text: #1f2937; --muted: #6b7280;
+      --border: #e5e7eb; --primary: #1d4ed8; --primary-dark: #1e40af;
+      --ok-bg: #ecfdf5; --ok-text: #047857; --ok-border: #a7f3d0;
+      --bad-bg: #fef2f2; --bad-text: #b91c1c; --bad-border: #fecaca;
+      --warn-bg: #fffbeb; --warn-text: #b45309; --warn-border: #fde68a;
+      --info-bg: #eff6ff; --info-text: #1d4ed8; --info-border: #bfdbfe;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: "Segoe UI", "Arial Hebrew", Arial, sans-serif; line-height: 1.5;
+    }
+    .container { max-width: 1000px; margin: 0 auto; padding: 24px 16px 64px; }
+    header.site { background: var(--primary); color: #fff; padding: 18px 0; }
+    header.site .container { padding-top: 0; padding-bottom: 0; }
+    header.site h1 { margin: 0; font-size: 1.4rem; }
+    header.site p { margin: 4px 0 0; opacity: .85; font-size: .95rem; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px; margin-top: 20px;
+    }
+    .btn {
+      display: inline-block; background: var(--primary); color: #fff; border: none;
+      padding: 10px 26px; border-radius: 8px; font-size: 1rem; cursor: pointer;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .alert { border-radius: 8px; padding: 10px 14px; margin: 10px 0; border: 1px solid; }
+    .alert.error { background: var(--bad-bg); color: var(--bad-text); border-color: var(--bad-border); }
+    .alert.warn { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn-border); }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: right; }
+    th { background: #f3f4f6; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .85rem; border: 1px solid; }
+    .badge.ok { background: var(--ok-bg); color: var(--ok-text); border-color: var(--ok-border); }
+    .badge.bad { background: var(--bad-bg); color: var(--bad-text); border-color: var(--bad-border); }
+    .badge.warn { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn-border); }
+    .badge.info { background: var(--info-bg); color: var(--info-text); border-color: var(--info-border); }
+    .muted { color: var(--muted); font-size: .9rem; }
+    details.id-block { margin-top: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+    details.id-block > summary {
+      cursor: pointer; padding: 12px 16px; display: flex; gap: 14px;
+      align-items: center; flex-wrap: wrap; list-style: none;
+    }
+    details.id-block > summary::-webkit-details-marker { display: none; }
+    details.id-block > summary .id { font-weight: 700; font-size: 1.05rem; }
+    details.id-block[open] > summary { border-bottom: 1px solid var(--border); }
+    .detail-body { padding: 12px 16px 16px; overflow-x: auto; }
+    .row-diff td { background: var(--bad-bg); }
+    .row-side td { background: var(--warn-bg); }
+    .diff-vals { font-size: .9rem; }
+    .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+    .stat { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 18px; text-align: center; }
+    .stat b { display: block; font-size: 1.4rem; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="container">
+      <h1>השוואת נתוני תקופות עבודה — PDF מול DAT</h1>
+      <p>פענוח שורות 9050 מקובץ ה-DAT והשוואתן לטבלת "פירוט תקופות עבודה" בקבצי ה-PDF</p>
+    </div>
+  </header>
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>
