@@ -1,7 +1,4 @@
-__pycache__/
-*.pyc
-.pytest_cache/
-venv/
+node_modules/
 .env
 
 # קבצי אמת עם פרטים אישיים - לא לשמור בריפוזיטורי

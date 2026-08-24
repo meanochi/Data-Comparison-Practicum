@@ -1,0 +1,96 @@
+<%- include('partials/top') %>
+<%
+  function statusBadge(status) {
+    if (status === 'match') return '<span class="badge ok">✔ זהה במלואו</span>';
+    if (status === 'mismatch') return '<span class="badge bad">✖ נמצאו אי-התאמות</span>';
+    if (status === 'missing_pdf') return '<span class="badge warn">קיים ב-DAT בלבד (חסר PDF)</span>';
+    if (status === 'missing_dat') return '<span class="badge warn">קיים ב-PDF בלבד (חסר ב-DAT)</span>';
+    return '<span class="badge bad">שגיאה בפענוח</span>';
+  }
+%>
+  <div class="card">
+    <h2>תוצאות השוואה</h2>
+    <p class="muted">קובץ DAT: <%= datName %></p>
+    <div class="stats">
+      <div class="stat"><b><%= summary.total %></b>מספרי זהות</div>
+      <div class="stat"><b style="color:#047857"><%= summary.match %></b>זהים במלואם</div>
+      <div class="stat"><b style="color:#b91c1c"><%= summary.mismatch %></b>עם אי-התאמות</div>
+      <div class="stat"><b style="color:#b45309"><%= summary.missing %></b>חסרים בצד אחד</div>
+      <% if (summary.error) { %><div class="stat"><b style="color:#b91c1c"><%= summary.error %></b>שגיאות</div><% } %>
+    </div>
+    <% for (const w of warnings) { %><div class="alert warn"><%= w %></div><% } %>
+    <p style="margin-bottom:0"><a href="/">&rarr; השוואה חדשה</a></p>
+  </div>
+
+  <% for (const r of results) { %>
+  <details class="id-block" <%= r.status !== 'match' ? 'open' : '' %>>
+    <summary>
+      <span class="id">ת"ז <%= r.idNumber %></span>
+      <%- statusBadge(r.status) %>
+      <% if (r.totalCompared) { %>
+        <span class="muted"><%= r.matched %> מתוך <%= r.totalCompared %> תקופות זהות (<%= r.percent %>%)</span>
+      <% } %>
+      <% if (r.pdfFile) { %><span class="muted"><%= r.pdfFile %></span><% } %>
+    </summary>
+    <div class="detail-body">
+      <% for (const e of r.errors) { %><div class="alert error"><%= e %></div><% } %>
+      <% for (const w of r.warnings) { %><div class="alert warn"><%= w %></div><% } %>
+
+      <% if (r.rows.length) { %>
+      <table>
+        <tr>
+          <th>מתאריך</th><th>עד תאריך</th><th>סטטוס</th>
+          <th>סוג תקופה</th><th>אורך שירות (חודשים)</th><th>סוג זכויות</th><th>היקף משרה</th>
+          <th>פירוט אי-התאמה</th>
+        </tr>
+        <% for (const row of r.rows) { %>
+        <% const src = row.pdfRow; const dat = row.datRow; %>
+        <tr class="<%= row.status === 'diff' ? 'row-diff' : (row.status === 'dat_only' || row.status === 'pdf_only') ? 'row-side' : '' %>">
+          <td><%= row.startDisplay %></td>
+          <td><%= row.endDisplay %></td>
+          <td>
+            <% if (row.status === 'match') { %><span class="badge ok">זהה</span>
+            <% } else if (row.status === 'diff') { %><span class="badge bad">שונה</span>
+            <% } else if (row.status === 'dat_only') { %><span class="badge warn">רק ב-DAT</span>
+            <% } else { %><span class="badge warn">רק ב-PDF</span><% } %>
+          </td>
+          <td><%= (src && src.tkufaLabel) || (dat && dat.sugTkufaTeur) || '' %></td>
+          <td><%= (src || dat) ? fmtG(src ? src.months : dat.months) : '' %></td>
+          <td><%= (src && src.zchuyotLabel) || (dat && dat.sugZchuyotTeur) || '' %></td>
+          <td><%= (src || dat) ? fmtF3(src ? src.heikef : dat.heikef) : '' %></td>
+          <td class="diff-vals">
+            <% if (row.status === 'diff') { %>
+              <% for (const d of row.diffs) { %>
+                <div><b><%= d.fieldName %></b>: ב-PDF: <%= d.pdfValue %> | ב-DAT: <%= d.datValue %></div>
+              <% } %>
+            <% } else if (row.status === 'dat_only') { %>
+              התקופה קיימת בקובץ ה-DAT אך לא נמצאה בטבלת ה-PDF
+            <% } else if (row.status === 'pdf_only') { %>
+              התקופה מופיעה ב-PDF אך לא נמצאה בקובץ ה-DAT
+            <% } %>
+          </td>
+        </tr>
+        <% } %>
+      </table>
+      <% } %>
+
+      <% if (r.excluded.length) { %>
+        <p class="muted" style="margin-bottom:4px">
+          שורות "עזיבה" (סוג תקופה 4) בקובץ ה-DAT — אינן מודפסות בדו"ח ולכן לא נכללו בהשוואה:
+        </p>
+        <table>
+          <tr><th>מתאריך</th><th>עד תאריך</th><th>אורך שירות</th><th>סוג זכויות</th></tr>
+          <% for (const ex of r.excluded) { %>
+          <tr>
+            <td><%= ex.start.slice(0,2) %>/<%= ex.start.slice(2,4) %>/<%= ex.start.slice(4) %></td>
+            <td><%= ex.end.slice(0,2) %>/<%= ex.end.slice(2,4) %>/<%= ex.end.slice(4) %></td>
+            <td><%= fmtG(ex.months) %></td>
+            <td><%= ex.sugZchuyotTeur %></td>
+          </tr>
+          <% } %>
+        </table>
+      <% } %>
+    </div>
+  </details>
+  <% } %>
+<%- include('partials/bottom') %>
