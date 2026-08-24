@@ -45,10 +45,11 @@ npm test
 | `src/pdfText.js`          | חילוץ גנרי | המרת כל PDF לשורות טקסט בסדר חזותי (mupdf, פונטים משובצים, BiDi) — בלי ידע על מבנה דוח ספציפי |
 | `src/PdfChinuchParser.js` | פרסר דוח   | פרסר דו"ח "סיכום נתוני פרישה": מס' זהות + טבלת פירוט תקופות עבודה                             |
 | `src/datParser.js`        | פרסר DAT   | פענוח קובץ ה-DAT לפי טבלת קודי רשומה (כרגע: 9050)                                             |
+| `src/tableSource.js`      | מקור טבלה  | פענוח שורות מהטבלה הזמנית (LD_CHINUCH_9050_TKUFOT_RETSIF) לאותו מבנה תוצאה                    |
 | `src/mappings.js`         | מיפויים    | טבלאות הקודים ומיפוי תוויות ה-PDF לקודי ה-DAT                                                 |
 | `src/comparator.js`       | השוואה     | מנוע ההשוואה ובניית התוצאות                                                                   |
-| `server.js` + `views/`    | ממשק       | ממשק הווב (Express + EJS, עברית RTL)                                                          |
-| `test/system.test.js`     | בדיקות     | בדיקות אוטומטיות (node:test)                                                                  |
+| `server.js` + `views/`    | ממשק       | ממשק הווב (Express + EJS, עברית RTL) + ‏API‏ (`POST /api/compare`)                            |
+| `test/*.test.js`          | בדיקות     | בדיקות אוטומטיות (node:test)                                                                  |
 
 ## הרחבת המערכת
 
@@ -94,6 +95,53 @@ ISO-8859-8 ו-UTF-8). מפוענחות רק שורות שמתחילות ב-`9050
 | 11          | היקף משרה   | × 1000 (למשל `0667` = 0.667)            |
 
 שאר השדות בשורה אינם ידועים בשלב זה ואינם מושווים.
+
+## התממשקות דרך API — טבלה זמנית במקום קובץ DAT
+
+המערכת הקיימת טוענת את קובץ הממשק עם SQL*Loader (קובץ הבקרה `LD_Chinuch.ctl`)
+לטבלאות `LD_CHINUCH_*`. במקום להעביר לנו קובץ DAT, היא שולחת את שורות טבלת
+`LD_CHINUCH_9050_TKUFOT_RETSIF` יחד עם קבצי ה-PDF לנקודת הקצה:
+
+```
+POST /api/compare
+Content-Type: application/json
+
+{
+  "rows": [
+    { "MISPAR_TNUA": "9050", "MISPAR_ZEHUT": "012345678", "SUG_TKUFA": "9999",
+      "TAARICH_ME": "01092010", "TAARICH_AD": "31082015", "ORECH_SHERUT": "06000",
+      "SUG_ZECHUYOT_LEGIMLA": "02", "HEKEF_MISRA": "1000", "SEQ": 1 }
+  ],
+  "pdfs": [
+    { "filename": "report_12345678.pdf", "content": "<PDF בקידוד base64>" }
+  ]
+}
+```
+
+- `rows` — שורות הטבלה כאובייקטים ששמות העמודות הם המפתחות שלהם (כפי
+  שמוחזר מ-`SELECT` על הטבלה). עמודות שאינן משתתפות בהשוואה
+  (`KOD_PEULA`, `ZIHUY_NOSAF`, `SEMEL_MISRAD`, `LOAD_DATE`) מותרות ומתעלמים
+  מהן; עמודת `SEQ` משמשת לזיהוי השורה בהודעות שגיאה ואזהרה.
+- `pdfs` — קבצי הדוחות, כל אחד עם שם ותוכן ב-base64.
+
+התשובה: `{ summary, warnings, results }` — אותם נתונים שמוצגים במסך
+התוצאות, בפורמט JSON. הפענוח נעשה ב-`src/tableSource.js`, שמחזיר בדיוק את
+אותו מבנה תוצאה כמו פרסר ה-DAT, כך ששאר שכבות המערכת משותפות לשני המקורות.
+
+### סימולציה מקומית של התהליך המלא
+
+אפשר לשחזר מקומית את מה שקורה במציאות — טעינת ה-DAT לטבלה אמיתית לפי
+הלוגיקה של `LD_Chinuch.ctl` ואז שליפה ושליחה ל-API (דורש Node 22.5+,
+טבלת SQLite מקומית ב-`examples/chinuch.db`):
+
+```bash
+node examples/simulateCtlLoad.js      # "sqlldr": טעינת samples/sample.dat לטבלה
+npm start                             # בטרמינל אחד
+node examples/apiFromTable.js         # בטרמינל שני: SELECT מהטבלה -> API
+```
+
+`examples/apiClientDemo.js` היא גרסה מקוצרת שבונה את שורות הטבלה ישירות
+מקובץ הדוגמה, בלי טבלה בפועל.
 
 ## כללי השוואה שסוכמו
 

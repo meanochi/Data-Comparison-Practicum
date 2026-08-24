@@ -4,3 +4,6 @@ node_modules/
 # קבצי אמת עם פרטים אישיים - לא לשמור בריפוזיטורי
 uploads/
 real_data/
+
+# בסיס נתונים מקומי של סימולציית הטעינה
+examples/chinuch.db

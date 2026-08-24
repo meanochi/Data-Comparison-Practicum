@@ -46,7 +46,7 @@ export function fmtDate(ddmmyyyy) {
 }
 
 /** המרת שדה מספרי; זורק שגיאה על ערך לא מספרי (כמו int() בפייתון). */
-function toInt(s) {
+export function toInt(s) {
   const t = s.trim();
   if (!/^-?\d+$/.test(t)) {
     throw new Error(`ערך לא מספרי: '${s}'`);
@@ -105,7 +105,7 @@ export function parseDatBytes(buf) {
 }
 
 /** בדיקת שפיות: לא אמורות להיות שתי תקופות עם אותם תאריכים לאותה ת"ז. */
-function checkDuplicatePeriods(result) {
+export function checkDuplicatePeriods(result) {
   for (const [idNumber, periods] of Object.entries(result.periodsById)) {
     const seen = new Map();
     for (const p of periods) {
