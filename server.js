@@ -96,12 +96,26 @@ app.post(
  * התשובה: { summary, warnings, results } - אותם נתונים שמוצגים במסך התוצאות.
  */
 app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
+  const startedAt = Date.now();
+  const stamp = new Date().toISOString();
   const { rows, pdfs } = req.body ?? {};
   if (!Array.isArray(rows)) {
+    console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר rows`);
     return res.status(400).json({ error: "נדרש שדה rows: מערך שורות מהטבלה הזמנית" });
   }
   if (!Array.isArray(pdfs) || pdfs.length === 0) {
+    console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר pdfs`);
     return res.status(400).json({ error: "נדרש שדה pdfs: מערך של { filename, content (base64) }" });
+  }
+  console.log(`[${stamp}] /api/compare מ-${req.ip}: התקבלו ${rows.length} שורות טבלה ו-${pdfs.length} קבצי PDF`);
+
+  // לתחקור: אם מוגדר API_DUMP_DIR, גוף הבקשה נשמר שם כקובץ JSON
+  if (process.env.API_DUMP_DIR) {
+    const fs = await import("node:fs");
+    fs.mkdirSync(process.env.API_DUMP_DIR, { recursive: true });
+    const dumpPath = path.join(process.env.API_DUMP_DIR, `request_${stamp.replace(/[:.]/g, "-")}.json`);
+    fs.writeFileSync(dumpPath, JSON.stringify(req.body, null, 2));
+    console.log(`    גוף הבקשה נשמר: ${dumpPath}`);
   }
 
   const datResult = parseTableRows(rows);
@@ -126,7 +140,12 @@ app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
   }
 
   const { results, warnings } = compareAll(datResult, pdfResults);
-  res.json({ summary: buildSummary(results), warnings, results });
+  const summary = buildSummary(results);
+  console.log(
+    `    הושוו ${summary.total} ת"ז (תואמות: ${summary.match}, שונות: ${summary.mismatch}, ` +
+    `חסרות: ${summary.missing}, שגיאות: ${summary.error}) תוך ${Date.now() - startedAt}ms`
+  );
+  res.json({ summary, warnings, results });
 });
 
 const PORT = process.env.PORT || 5000;
