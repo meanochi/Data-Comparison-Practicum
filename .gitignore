@@ -7,3 +7,4 @@ real_data/
 
 # בסיס נתונים מקומי של סימולציית הטעינה
 examples/chinuch.db
+examples/incoming/

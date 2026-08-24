@@ -20,7 +20,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { decodeDat } from "../src/datParser.js";
 
@@ -31,7 +31,6 @@ const { DatabaseSync } = await import("node:sqlite").catch(() => {
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const DB_PATH = path.join(HERE, "chinuch.db");
-const datPath = process.argv[2] ?? path.join(HERE, "..", "samples", "sample.dat");
 
 // סדר העמודות בבלוק ה-9050 של LD_Chinuch.ctl (לפי סדר השדות בקובץ)
 const FILE_COLUMNS = [
@@ -40,48 +39,56 @@ const FILE_COLUMNS = [
   "SUG_ZECHUYOT_LEGIMLA", "HEKEF_MISRA",
 ];
 
-const db = new DatabaseSync(DB_PATH);
-db.exec(`
-  CREATE TABLE IF NOT EXISTS LD_CHINUCH_9050_TKUFOT_RETSIF (
-    MISPAR_TNUA          TEXT,
-    KOD_PEULA            TEXT,
-    SEMEL_MISRAD         TEXT,
-    MISPAR_ZEHUT         TEXT,
-    ZIHUY_NOSAF          TEXT,
-    SUG_TKUFA            TEXT,
-    TAARICH_ME           TEXT,
-    TAARICH_AD           TEXT,
-    ORECH_SHERUT         TEXT,
-    SUG_ZECHUYOT_LEGIMLA TEXT,
-    HEKEF_MISRA          TEXT,
-    LOAD_DATE            TEXT,
-    SEQ                  INTEGER
-  )
-`);
-db.exec("DELETE FROM LD_CHINUCH_9050_TKUFOT_RETSIF"); // truncate
+/** "הרצת ה-sqlldr": טעינת קובץ DAT לטבלה. מחזיר { loaded, skipped }. */
+export function loadDatToTable(datPath, dbPath = DB_PATH) {
+  const db = new DatabaseSync(dbPath);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS LD_CHINUCH_9050_TKUFOT_RETSIF (
+      MISPAR_TNUA          TEXT,
+      KOD_PEULA            TEXT,
+      SEMEL_MISRAD         TEXT,
+      MISPAR_ZEHUT         TEXT,
+      ZIHUY_NOSAF          TEXT,
+      SUG_TKUFA            TEXT,
+      TAARICH_ME           TEXT,
+      TAARICH_AD           TEXT,
+      ORECH_SHERUT         TEXT,
+      SUG_ZECHUYOT_LEGIMLA TEXT,
+      HEKEF_MISRA          TEXT,
+      LOAD_DATE            TEXT,
+      SEQ                  INTEGER
+    )
+  `);
+  db.exec("DELETE FROM LD_CHINUCH_9050_TKUFOT_RETSIF"); // truncate
 
-const insert = db.prepare(`
-  INSERT INTO LD_CHINUCH_9050_TKUFOT_RETSIF
-    (${FILE_COLUMNS.join(", ")}, LOAD_DATE, SEQ)
-  VALUES (${FILE_COLUMNS.map(() => "?").join(", ")}, datetime('now'), ?)
-`);
+  const insert = db.prepare(`
+    INSERT INTO LD_CHINUCH_9050_TKUFOT_RETSIF
+      (${FILE_COLUMNS.join(", ")}, LOAD_DATE, SEQ)
+    VALUES (${FILE_COLUMNS.map(() => "?").join(", ")}, datetime('now'), ?)
+  `);
 
-const lines = decodeDat(fs.readFileSync(datPath)).split(/\r\n|\r|\n/);
-let seq = 0;
-let skipped = 0;
-for (const line of lines) {
-  const fields = line.replace(/\s+$/, "").split("~");
-  if (fields[0]?.trim() !== "9050") {           // when MISPAR_TNUA = '9050'
-    if (line.trim() !== "") skipped++;
-    continue;
+  const lines = decodeDat(fs.readFileSync(datPath)).split(/\r\n|\r|\n/);
+  let seq = 0;
+  let skipped = 0;
+  for (const line of lines) {
+    const fields = line.replace(/\s+$/, "").split("~");
+    if (fields[0]?.trim() !== "9050") {           // when MISPAR_TNUA = '9050'
+      if (line.trim() !== "") skipped++;
+      continue;
+    }
+    const values = FILE_COLUMNS.map((_, i) => fields[i]?.trim() ?? null); // trim + TRAILING NULLCOLS
+    // נאמן ל-CTL כפי שהוא: SEMEL_MISRAD מקבל את ערך KOD_PEULA (כנראה באג ב-CTL,
+    // אבל כך הטבלה נראית במציאות; לא משפיע על ההשוואה)
+    values[2] = values[1];
+    insert.run(...values, ++seq);                 // seq sequence(1,1)
   }
-  const values = FILE_COLUMNS.map((_, i) => fields[i]?.trim() ?? null); // trim + TRAILING NULLCOLS
-  // נאמן ל-CTL כפי שהוא: SEMEL_MISRAD מקבל את ערך KOD_PEULA (כנראה באג ב-CTL,
-  // אבל כך הטבלה נראית במציאות; לא משפיע על ההשוואה)
-  values[2] = values[1];
-  insert.run(...values, ++seq);                 // seq sequence(1,1)
+  db.close();
+  return { loaded: seq, skipped };
 }
-db.close();
 
-console.log(`נטענו ${seq} שורות 9050 לטבלת LD_CHINUCH_9050_TKUFOT_RETSIF (${DB_PATH})`);
-console.log(`${skipped} שורות מסוגים אחרים לא נטענו (תנאי ה-when), כמו במציאות.`);
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  const datPath = process.argv[2] ?? path.join(HERE, "..", "samples", "sample.dat");
+  const { loaded, skipped } = loadDatToTable(datPath);
+  console.log(`נטענו ${loaded} שורות 9050 לטבלת LD_CHINUCH_9050_TKUFOT_RETSIF (${DB_PATH})`);
+  console.log(`${skipped} שורות מסוגים אחרים לא נטענו (תנאי ה-when), כמו במציאות.`);
+}
