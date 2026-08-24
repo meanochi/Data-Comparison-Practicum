@@ -1,16 +1,18 @@
 /**
- * ממשק ווב להשוואת קבצי DAT מול קבצי PDF.
+ * ממשק ווב להשוואת קבצי DAT מול קבצי PDF,
+ * ו-API להשוואה מול נתוני הטבלה הזמנית (POST /api/compare).
  *
  * הרצה:  npm start  (או node server.js)  ואז לפתוח בדפדפן  http://localhost:5000
  */
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import express from "express";
 import multer from "multer";
 
 import { compareAll } from "./src/comparator.js";
 import { parseDatBytes } from "./src/datParser.js";
+import { parseTableRows } from "./src/tableSource.js";
 import { parsePdfBuffer } from "./src/pdfChinuchParser.js";
 import { fmtG } from "./src/comparator.js";
 
@@ -30,6 +32,16 @@ const helpers = {
   fmtG,
   fmtF3: (n) => Number(n).toFixed(3),
 };
+
+function buildSummary(results) {
+  return {
+    total: results.length,
+    match: results.filter((r) => r.status === "match").length,
+    mismatch: results.filter((r) => r.status === "mismatch").length,
+    missing: results.filter((r) => r.status === "missing_pdf" || r.status === "missing_dat").length,
+    error: results.filter((r) => r.status === "error").length,
+  };
+}
 
 app.get("/", (req, res) => {
   res.render("index", { error: null });
@@ -62,24 +74,66 @@ app.post(
     }
 
     const { results, warnings } = compareAll(datResult, pdfResults);
-    const summary = {
-      total: results.length,
-      match: results.filter((r) => r.status === "match").length,
-      mismatch: results.filter((r) => r.status === "mismatch").length,
-      missing: results.filter((r) => r.status === "missing_pdf" || r.status === "missing_dat").length,
-      error: results.filter((r) => r.status === "error").length,
-    };
     res.render("results", {
       results,
       warnings,
-      summary,
+      summary: buildSummary(results),
       datName: Buffer.from(datFile.originalname, "latin1").toString("utf8"),
       ...helpers,
     });
   }
 );
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, "127.0.0.1", () => {
-  console.log(`השרת פעיל: http://localhost:${PORT}`);
+/**
+ * API עבור המערכת הקיימת: השוואה מול נתוני הטבלה הזמנית במקום קובץ DAT.
+ *
+ * גוף הבקשה (application/json):
+ *   {
+ *     "rows": [ { "MISPAR_TNUA": "9050", "MISPAR_ZEHUT": "...", ... }, ... ],
+ *     "pdfs": [ { "filename": "a.pdf", "content": "<base64>" }, ... ]
+ *   }
+ * rows - שורות LD_CHINUCH_9050_TKUFOT_RETSIF; שמות העמודות כמפתחות.
+ * התשובה: { summary, warnings, results } - אותם נתונים שמוצגים במסך התוצאות.
+ */
+app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
+  const { rows, pdfs } = req.body ?? {};
+  if (!Array.isArray(rows)) {
+    return res.status(400).json({ error: "נדרש שדה rows: מערך שורות מהטבלה הזמנית" });
+  }
+  if (!Array.isArray(pdfs) || pdfs.length === 0) {
+    return res.status(400).json({ error: "נדרש שדה pdfs: מערך של { filename, content (base64) }" });
+  }
+
+  const datResult = parseTableRows(rows);
+
+  const pdfResults = [];
+  for (let i = 0; i < pdfs.length; i++) {
+    const { filename = `pdf-${i + 1}`, content } = pdfs[i] ?? {};
+    try {
+      if (typeof content !== "string" || content === "") {
+        throw new Error("שדה content חסר או ריק");
+      }
+      pdfResults.push([filename, await parsePdfBuffer(Buffer.from(content, "base64"))]);
+    } catch (exc) {
+      // קובץ פגום לא מפיל את כל הבקשה - מדווח כתוצאת שגיאה עבור הקובץ הזה
+      pdfResults.push([filename, {
+        idNumber: null,
+        periods: [],
+        warnings: [],
+        errors: [`שגיאה בפענוח ${filename}: ${exc.message}`],
+      }]);
+    }
+  }
+
+  const { results, warnings } = compareAll(datResult, pdfResults);
+  res.json({ summary: buildSummary(results), warnings, results });
 });
+
+const PORT = process.env.PORT || 5000;
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  app.listen(PORT, "127.0.0.1", () => {
+    console.log(`השרת פעיל: http://localhost:${PORT}`);
+  });
+}
+
+export { app };
