@@ -128,6 +128,21 @@ Content-Type: application/json
 התוצאות, בפורמט JSON. הפענוח נעשה ב-`src/tableSource.js`, שמחזיר בדיוק את
 אותו מבנה תוצאה כמו פרסר ה-DAT, כך ששאר שכבות המערכת משותפות לשני המקורות.
 
+### סימולציה מקומית של התהליך המלא
+
+אפשר לשחזר מקומית את מה שקורה במציאות — טעינת ה-DAT לטבלה אמיתית לפי
+הלוגיקה של `LD_Chinuch.ctl` ואז שליפה ושליחה ל-API (דורש Node 22.5+,
+טבלת SQLite מקומית ב-`examples/chinuch.db`):
+
+```bash
+node examples/simulateCtlLoad.js      # "sqlldr": טעינת samples/sample.dat לטבלה
+npm start                             # בטרמינל אחד
+node examples/apiFromTable.js         # בטרמינל שני: SELECT מהטבלה -> API
+```
+
+`examples/apiClientDemo.js` היא גרסה מקוצרת שבונה את שורות הטבלה ישירות
+מקובץ הדוגמה, בלי טבלה בפועל.
+
 ## כללי השוואה שסוכמו
 
 1. **התאמת שורות** לפי (תאריך התחלה, תאריך סיום); לאחר מכן מושווים סוג
