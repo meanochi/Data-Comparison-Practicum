@@ -22,6 +22,7 @@
  */
 import { checkDuplicatePeriods, decodeDat, normalizeId, toInt } from "./parsers/datParser.js";
 
+
 const RECORD_CODE_9050 = "9050";
 
 // סדר העמודות בבלוק ה-9050 של LD_Chinuch.ctl (לפי סדר השדות בקובץ)
