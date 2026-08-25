@@ -11,8 +11,8 @@ import express from "express";
 import multer from "multer";
 
 import { compareAll, unifiedText } from "./src/comparator.js";
-import { parseDatBytes } from "./src/datParser.js";
-import { parseTableRows } from "./src/tableSource.js";
+import { normalizeId } from "./src/datParser.js";
+import { parseTableRows, tableRowsFromDatBytes } from "./src/tableSource.js";
 import { parsePdfBuffer } from "./src/pdfChinuchParser.js";
 import { fmtG } from "./src/comparator.js";
 
@@ -64,16 +64,60 @@ app.post(
       return res.render("index", { error: "יש לבחור לפחות קובץ PDF אחד" });
     }
 
-    const datResult = parseDatBytes(datFile.buffer);
+    // המעטפת עובדת כלקוח של ה-API, אחד-על-אחד כמו במציאות: קיבוץ שורות
+    // הקובץ לפי ת"ז, וקריאה נפרדת ל-/api/compare עבור כל מסמך עם השורות שלו.
+    const rowsById = new Map();
+    for (const row of tableRowsFromDatBytes(datFile.buffer)) {
+      const id = normalizeId(String(row.MISPAR_ZEHUT ?? ""));
+      if (!rowsById.has(id)) rowsById.set(id, []);
+      rowsById.get(id).push(row);
+    }
 
-    const pdfResults = [];
+    const apiUrl = `http://127.0.0.1:${req.socket.localPort}/api/compare`;
+    const results = [];
+    const warnings = [];
+    const sentIds = new Set();
     for (const f of pdfFiles) {
       // שמות קבצים מגיעים מהדפדפן ב-latin1 - המרה חזרה ל-UTF-8 לתצוגה נכונה
       const fname = Buffer.from(f.originalname, "latin1").toString("utf8");
-      pdfResults.push([fname, await parsePdfBuffer(f.buffer)]);
+      // פענוח מקדים רק כדי לזהות לאיזו ת"ז המסמך שייך (הצימוד לשורות)
+      const idNumber = (await parsePdfBuffer(f.buffer)).idNumber;
+      if (idNumber !== null && sentIds.has(idNumber)) {
+        warnings.push(`ת"ז ${idNumber}: הועלה יותר ממסמך אחד - נלקח הראשון`);
+        continue;
+      }
+      const resp = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rows: rowsById.get(idNumber) ?? [],
+          pdf: { filename: fname, content: f.buffer.toString("base64") },
+        }),
+      });
+      const body = await resp.json();
+      if (!resp.ok) {
+        warnings.push(`${fname}: הקריאה נדחתה - ${body.error}`);
+        continue;
+      }
+      if (idNumber !== null) sentIds.add(idNumber);
+      results.push(...body.results);
+      warnings.push(...body.warnings);
     }
 
-    const { results, warnings } = compareAll(datResult, pdfResults);
+    // ת"ז שיש להן שורות בקובץ אך לא הועלה מסמך - לא נשלחת קריאה, כמו במציאות
+    for (const id of [...rowsById.keys()].sort()) {
+      if (!sentIds.has(id)) {
+        warnings.push(`ת"ז ${id}: לא הועלה מסמך PDF - לא נשלחה קריאה ל-API`);
+      }
+    }
+
+    // מיון כמו קודם: שגיאות ואי-התאמות תחילה, התאמות מלאות בסוף
+    const order = { error: 0, mismatch: 1, missing_pdf: 2, missing_dat: 3, match: 4 };
+    results.sort((a, b) => {
+      const d = (order[a.status] ?? 9) - (order[b.status] ?? 9);
+      return d !== 0 ? d : a.idNumber < b.idNumber ? -1 : a.idNumber > b.idNumber ? 1 : 0;
+    });
+
     res.render("results", {
       results,
       warnings,
@@ -87,39 +131,35 @@ app.post(
 /**
  * API עבור המערכת הקיימת: השוואה מול נתוני הטבלה הזמנית במקום קובץ DAT.
  *
- * מצב העבודה לפי האפיון הוא אחד-על-אחד - כל קריאה נושאת ת"ז אחת:
+ * הממשק עובד אחד-על-אחד - כל קריאה נושאת ת"ז אחת ומסמך אחד:
  *   {
  *     "rows": [ { "MISPAR_TNUA": "9050", "MISPAR_ZEHUT": "...", ... }, ... ],
  *     "pdf":  { "filename": "a.pdf", "content": "<base64>" }
  *   }
  * rows - שורות LD_CHINUCH_9050_TKUFOT_RETSIF של אותה ת"ז; שמות העמודות
- * כמפתחות. בקשה עם pdf בודד ויותר מת"ז אחת ב-rows נדחית עם 400.
- * לצורך הדגמות מקומיות נתמך גם מערך pdfs (ריבוי דוחות בקריאה אחת).
+ * כמפתחות. בקשה עם יותר מת"ז אחת ב-rows נדחית עם 400.
  * התשובה: { valid, text, idNumber, summary, warnings, results }.
  */
 app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
   const startedAt = Date.now();
   const stamp = new Date().toISOString();
   const { rows, pdf } = req.body ?? {};
-  // לפי האפיון הקלט הוא קובץ PDF אחד (pdf); מערך pdfs נתמך להדגמות
-  let { pdfs } = req.body ?? {};
-  const singleMode = !Array.isArray(pdfs);
-  if (singleMode && pdf) pdfs = [pdf];
   if (!Array.isArray(rows)) {
     console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר rows`);
     return res.status(400).json({ error: "נדרש שדה rows: מערך שורות מהטבלה הזמנית" });
   }
-  if (!Array.isArray(pdfs) || pdfs.length === 0) {
-    console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר pdfs`);
-    return res.status(400).json({ error: "נדרש שדה pdfs: מערך של { filename, content (base64) }" });
+  if (!pdf || typeof pdf !== "object" || Array.isArray(pdf)) {
+    console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר pdf`);
+    return res.status(400).json({ error: "נדרש שדה pdf: { filename, content (base64) } - מסמך אחד לקריאה" });
   }
-  console.log(`[${stamp}] /api/compare מ-${req.ip}: התקבלו ${rows.length} שורות טבלה ו-${pdfs.length} קבצי PDF`);
+  const pdfs = [pdf];
+  console.log(`[${stamp}] /api/compare מ-${req.ip}: התקבלו ${rows.length} שורות טבלה ומסמך "${pdf.filename ?? "?"}"`);
 
   const datResult = parseTableRows(rows);
 
-  // אכיפת מצב אחד-על-אחד: קריאה עם pdf בודד חייבת לשאת ת"ז אחת בלבד
+  // אכיפת מצב אחד-על-אחד: כל קריאה נושאת ת"ז אחת בלבד
   const idsInRows = Object.keys(datResult.periodsById);
-  if (singleMode && idsInRows.length > 1) {
+  if (idsInRows.length > 1) {
     console.log(`    בקשה נדחתה - ${idsInRows.length} מספרי זהות בקריאה אחת (${idsInRows.join(", ")})`);
     return res.status(400).json({
       error: `הממשק עובד אחד-על-אחד: בקריאה נשלחות שורות של תעודת זהות אחת בלבד, ` +

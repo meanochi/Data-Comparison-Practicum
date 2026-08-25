@@ -40,7 +40,6 @@ const pdfOf = (id) => ({
   filename: `sample_${id}.pdf`,
   content: fs.readFileSync(path.join(SAMPLES, `sample_${id}.pdf`)).toString("base64"),
 });
-const allPdfs = ["12345678", "23456789", "45678901"].map(pdfOf);
 
 // --- עזרי Postman ------------------------------------------------------------
 function request(name, body, testLines) {
@@ -79,78 +78,74 @@ const collection = {
   item: [
     request(
       "1. תקין לחלוטין - valid=1",
-      { rows: rowsOf("012345678"), pdfs: [pdfOf("12345678")] },
+      { rows: rowsOf("012345678"), pdf: pdfOf("12345678") },
       [ok, json,
         'pm.test("valid=1", () => pm.expect(body.valid).to.eql(1));',
+        'pm.test("idNumber נכון", () => pm.expect(body.idNumber).to.eql("12345678"));',
         'pm.test("ההתאמה מלאה", () => pm.expect(body.summary.match).to.eql(body.summary.total));',
         'pm.test("יש טקסט מאוחד", () => pm.expect(body.text).to.include("זהה במלואו"));'],
     ),
     request(
       "2. אי-התאמות - valid=0 עם פירוט הפערים",
-      { rows: rowsOf("023456789"), pdfs: [pdfOf("23456789")] },
+      { rows: rowsOf("023456789"), pdf: pdfOf("23456789") },
       [ok, json,
         'pm.test("valid=0", () => pm.expect(body.valid).to.eql(0));',
         'pm.test("יש אי-התאמות", () => pm.expect(body.summary.mismatch).to.be.above(0));',
         'pm.test("הטקסט מפרט פערים", () => pm.expect(body.text).to.include("מול"));'],
     ),
     request(
-      "3. כל נתוני הדוגמה - כולל חסרים בשני הצדדים",
-      { rows: allRows, pdfs: allPdfs },
+      '3. מקרה קצה: המסמך שייך לת"ז אחרת',
+      { rows: rowsOf("012345678"), pdf: pdfOf("23456789") },
       [ok, json,
         'pm.test("valid=0", () => pm.expect(body.valid).to.eql(0));',
-        'pm.test("4 מספרי זהות", () => pm.expect(body.summary.total).to.eql(4));',
-        'pm.test("2 חסרים בצד אחד", () => pm.expect(body.summary.missing).to.eql(2));'],
+        'pm.test("שני צדדים חסרים", () => pm.expect(body.summary.missing).to.eql(2));'],
     ),
     request(
-      "4. שדה pdf בודד (לפי האפיון) במקום מערך",
-      { rows: rowsOf("012345678"), pdf: pdfOf("12345678") },
-      [ok, json,
-        'pm.test("valid=1", () => pm.expect(body.valid).to.eql(1));'],
-    ),
-    request(
-      "5. מקרה קצה: חסר rows - נדחה עם 400",
-      { pdfs: [pdfOf("12345678")] },
+      "4. מקרה קצה: חסר rows - נדחה עם 400",
+      { pdf: pdfOf("12345678") },
       ['pm.test("סטטוס 400", () => pm.response.to.have.status(400));',
         json,
         'pm.test("הודעת שגיאה", () => pm.expect(body.error).to.include("rows"));'],
     ),
     request(
-      "6. מקרה קצה: חסר pdf - נדחה עם 400",
+      "5. מקרה קצה: חסר pdf - נדחה עם 400",
       { rows: rowsOf("012345678") },
-      ['pm.test("סטטוס 400", () => pm.response.to.have.status(400));'],
+      ['pm.test("סטטוס 400", () => pm.response.to.have.status(400));',
+        json,
+        'pm.test("הודעת שגיאה", () => pm.expect(body.error).to.include("pdf"));'],
     ),
     request(
-      "7. מקרה קצה: PDF פגום - לא מפיל את הבקשה",
+      "6. מקרה קצה: PDF פגום - לא מפיל את הבקשה",
       {
         rows: rowsOf("012345678"),
-        pdfs: [{ filename: "broken.pdf", content: Buffer.from("לא PDF").toString("base64") }],
+        pdf: { filename: "broken.pdf", content: Buffer.from("לא PDF").toString("base64") },
       },
       [ok, json,
         'pm.test("valid=0", () => pm.expect(body.valid).to.eql(0));',
         'pm.test("שגיאה אחת", () => pm.expect(body.summary.error).to.eql(1));'],
     ),
     request(
-      "8. מקרה קצה: rows ריק - הכל מדווח כחסר בנתונים",
-      { rows: [], pdfs: [pdfOf("12345678")] },
+      "7. מקרה קצה: rows ריק - מדווח כחסר בנתונים",
+      { rows: [], pdf: pdfOf("12345678") },
       [ok, json,
         'pm.test("valid=0", () => pm.expect(body.valid).to.eql(0));',
         'pm.test("חסר בנתונים", () => pm.expect(body.results[0].status).to.eql("missing_dat"));'],
     ),
     request(
-      '9. מקרה קצה: pdf בודד עם יותר מת"ז אחת - נדחה עם 400',
+      '8. מקרה קצה: יותר מת"ז אחת בקריאה - נדחה עם 400',
       { rows: allRows, pdf: pdfOf("12345678") },
       ['pm.test("סטטוס 400", () => pm.response.to.have.status(400));',
         json,
         'pm.test("הודעה על אחד-על-אחד", () => pm.expect(body.error).to.include("אחד-על-אחד"));'],
     ),
     request(
-      "10. מקרה קצה: שורה עם ערך לא מספרי - מדולגת עם אזהרה",
+      "9. מקרה קצה: שורה עם ערך לא מספרי - מדולגת עם אזהרה",
       {
         rows: [
           ...rowsOf("012345678"),
           { ...rowsOf("012345678")[0], SUG_TKUFA: "XXX", TAARICH_ME: "01011999", SEQ: 99 },
         ],
-        pdfs: [pdfOf("12345678")],
+        pdf: pdfOf("12345678"),
       },
       [ok, json,
         'pm.test("השורה הפגומה דווחה", () => pm.expect(JSON.stringify(body.warnings)).to.include("99"));'],

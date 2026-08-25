@@ -147,67 +147,58 @@ describe("POST /api/compare", () => {
     return [resp.status, await resp.json()];
   }
 
-  it("השוואה מלאה דרך ה-API", async () => {
-    const pdfs = fs
-      .readdirSync(SAMPLES)
-      .filter((f) => f.endsWith(".pdf"))
-      .map((f) => ({
-        filename: f,
-        content: fs.readFileSync(path.join(SAMPLES, f)).toString("base64"),
-      }));
-    const [status, body] = await post({ rows: sampleTableRows(), pdfs });
-    assert.equal(status, 200);
-    assert.equal(body.summary.total, 4);
-    assert.equal(body.summary.match, 1);
-    assert.equal(body.summary.mismatch, 1);
-    assert.equal(body.summary.missing, 2);
-    const byId = new Map(body.results.map((r) => [r.idNumber, r]));
-    assert.equal(byId.get("12345678").percent, 100.0);
-    // חוזה האפיון: אינדיקציית תקינות וטקסט מאוחד
-    assert.equal(body.valid, 0);
-    assert.ok(body.text.includes('ת"ז 12345678: זהה במלואו'));
-    assert.ok(body.text.includes("מול"));
+  const pdfOf = (id) => ({
+    filename: `sample_${id}.pdf`,
+    content: fs.readFileSync(path.join(SAMPLES, `sample_${id}.pdf`)).toString("base64"),
   });
+  const rowsOf = (id) => sampleTableRows().filter((r) => r.MISPAR_ZEHUT === id);
 
-  it("valid=1 כשכל ההשוואות תקינות, כולל שדה pdf בודד לפי האפיון", async () => {
-    const rows = sampleTableRows().filter((r) => r.MISPAR_ZEHUT === "012345678");
-    const pdf = {
-      filename: "sample_12345678.pdf",
-      content: fs.readFileSync(path.join(SAMPLES, "sample_12345678.pdf")).toString("base64"),
-    };
-    const [status, body] = await post({ rows, pdf });
+  it('קריאה נפרדת לכל ת"ז, כמו המעטפת והמערכת הקיימת', async () => {
+    // ת"ז תקינה במלואה
+    let [status, body] = await post({ rows: rowsOf("012345678"), pdf: pdfOf("12345678") });
     assert.equal(status, 200);
     assert.equal(body.valid, 1);
     assert.equal(body.idNumber, "12345678");
-    assert.equal(body.summary.match, body.summary.total);
+    assert.ok(body.text.includes("זהה במלואו"));
+
+    // ת"ז עם אי-התאמות
+    [status, body] = await post({ rows: rowsOf("023456789"), pdf: pdfOf("23456789") });
+    assert.equal(status, 200);
+    assert.equal(body.valid, 0);
+    assert.equal(body.summary.mismatch, 1);
+    assert.ok(body.text.includes("מול"));
+
+    // מסמך שאין לו שורות בטבלה
+    [status, body] = await post({ rows: [], pdf: pdfOf("45678901") });
+    assert.equal(status, 200);
+    assert.equal(body.valid, 0);
+    assert.equal(body.results[0].status, "missing_dat");
   });
 
-  it('מצב אחד-על-אחד: pdf בודד עם יותר מת"ז אחת נדחה ב-400', async () => {
-    const pdf = {
-      filename: "sample_12345678.pdf",
-      content: fs.readFileSync(path.join(SAMPLES, "sample_12345678.pdf")).toString("base64"),
-    };
-    const [status, body] = await post({ rows: sampleTableRows(), pdf });
+  it('יותר מת"ז אחת בקריאה נדחית ב-400', async () => {
+    const [status, body] = await post({ rows: sampleTableRows(), pdf: pdfOf("12345678") });
     assert.equal(status, 400);
     assert.ok(body.error.includes("אחד-על-אחד"));
   });
 
   it("בקשה ללא rows נדחית", async () => {
-    const [status] = await post({ pdfs: [{ filename: "a.pdf", content: "AA==" }] });
+    const [status] = await post({ pdf: pdfOf("12345678") });
     assert.equal(status, 400);
   });
 
-  it("בקשה ללא pdfs נדחית", async () => {
-    const [status] = await post({ rows: [] });
+  it("בקשה ללא pdf נדחית", async () => {
+    const [status, body] = await post({ rows: rowsOf("012345678") });
     assert.equal(status, 400);
+    assert.ok(body.error.includes("pdf"));
   });
 
   it("PDF פגום מדווח כשגיאה בלי להפיל את הבקשה", async () => {
     const [status, body] = await post({
-      rows: sampleTableRows(),
-      pdfs: [{ filename: "broken.pdf", content: Buffer.from("לא PDF").toString("base64") }],
+      rows: rowsOf("012345678"),
+      pdf: { filename: "broken.pdf", content: Buffer.from("לא PDF").toString("base64") },
     });
     assert.equal(status, 200);
+    assert.equal(body.valid, 0);
     assert.equal(body.summary.error, 1);
   });
 });
