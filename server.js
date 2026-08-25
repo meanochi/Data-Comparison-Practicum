@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import express from "express";
 import multer from "multer";
 
+
 import { compareAll, unifiedText } from "./src/comparator.js";
 import { normalizeId } from "./src/parsers/datParser.js";
 import { normalizeKeys, parseTableRows, tableRowsFromDatBytes } from "./src/tableSource.js";
