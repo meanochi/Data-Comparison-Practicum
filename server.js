@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import express from "express";
 import multer from "multer";
 
-import { compareAll } from "./src/comparator.js";
+import { compareAll, unifiedText } from "./src/comparator.js";
 import { parseDatBytes } from "./src/datParser.js";
 import { parseTableRows } from "./src/tableSource.js";
 import { parsePdfBuffer } from "./src/pdfChinuchParser.js";
@@ -98,7 +98,10 @@ app.post(
 app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
   const startedAt = Date.now();
   const stamp = new Date().toISOString();
-  const { rows, pdfs } = req.body ?? {};
+  const { rows, pdf } = req.body ?? {};
+  // לפי האפיון הקלט הוא קובץ PDF אחד (pdf); מערך pdfs נתמך גם כן
+  let { pdfs } = req.body ?? {};
+  if (!Array.isArray(pdfs) && pdf) pdfs = [pdf];
   if (!Array.isArray(rows)) {
     console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר rows`);
     return res.status(400).json({ error: "נדרש שדה rows: מערך שורות מהטבלה הזמנית" });
@@ -141,11 +144,13 @@ app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
 
   const { results, warnings } = compareAll(datResult, pdfResults);
   const summary = buildSummary(results);
+  // אינדיקציית תקינות לפי האפיון: 1 רק כשכל ההשוואות תקינות במלואן
+  const valid = summary.total > 0 && summary.match === summary.total ? 1 : 0;
   console.log(
     `    הושוו ${summary.total} ת"ז (תואמות: ${summary.match}, שונות: ${summary.mismatch}, ` +
-    `חסרות: ${summary.missing}, שגיאות: ${summary.error}) תוך ${Date.now() - startedAt}ms`
+    `חסרות: ${summary.missing}, שגיאות: ${summary.error}) => valid=${valid}, ${Date.now() - startedAt}ms`
   );
-  res.json({ summary, warnings, results });
+  res.json({ valid, text: unifiedText(results, warnings), summary, warnings, results });
 });
 
 const PORT = process.env.PORT || 5000;

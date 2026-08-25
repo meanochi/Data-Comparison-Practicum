@@ -163,6 +163,22 @@ describe("POST /api/compare", () => {
     assert.equal(body.summary.missing, 2);
     const byId = new Map(body.results.map((r) => [r.idNumber, r]));
     assert.equal(byId.get("12345678").percent, 100.0);
+    // חוזה האפיון: אינדיקציית תקינות וטקסט מאוחד
+    assert.equal(body.valid, 0);
+    assert.ok(body.text.includes('ת"ז 12345678: זהה במלואו'));
+    assert.ok(body.text.includes("מול"));
+  });
+
+  it("valid=1 כשכל ההשוואות תקינות, כולל שדה pdf בודד לפי האפיון", async () => {
+    const rows = sampleTableRows().filter((r) => r.MISPAR_ZEHUT === "012345678");
+    const pdf = {
+      filename: "sample_12345678.pdf",
+      content: fs.readFileSync(path.join(SAMPLES, "sample_12345678.pdf")).toString("base64"),
+    };
+    const [status, body] = await post({ rows, pdf });
+    assert.equal(status, 200);
+    assert.equal(body.valid, 1);
+    assert.equal(body.summary.match, body.summary.total);
   });
 
   it("בקשה ללא rows נדחית", async () => {
