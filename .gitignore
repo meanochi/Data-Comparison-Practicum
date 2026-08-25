@@ -15,3 +15,9 @@ examples/postman_collection.json
 # גופי בקשה שנוצרים ע"י makeRequestBody - עלולים להכיל נתונים
 body.json
 request_body.json
+
+# קובצי נתונים ולוגים בתיקיית האורקל - רק הסקריפטים עולים לגיט
+oracle/*.dat
+oracle/*.DAT
+oracle/*.log
+oracle/*.bad

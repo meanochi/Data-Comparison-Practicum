@@ -175,6 +175,9 @@ npm start                             # בטרמינל אחד
 node examples/apiFromTable.js         # בטרמינל שני: SELECT מהטבלה -> API
 ```
 
+**שדרוג לאורקל אמיתי:** בתיקיית `oracle/` יש ערכה מלאה (Docker) שמריצה
+את ה-CTL המקורי עם sqlldr אמיתי על Oracle Free - ראו `oracle/README.md`.
+
 ולהדגמה של התהליך המלא כמו בתפעול (בסגנון ControlM): מנטרים תיקיית קליטה,
 וכל קובץ DAT שנוחת בה נטען לטבלה ונשלח ל-API אוטומטית:
 

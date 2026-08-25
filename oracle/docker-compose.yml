@@ -1,0 +1,27 @@
+# Oracle Database Free בקונטיינר - לשחזור מדויק של סביבת המערכת הקיימת.
+#
+#   cd oracle
+#   docker compose up -d
+#   docker logs -f oracle-chinuch     <- לחכות לשורה DATABASE IS READY TO USE
+#
+# האימג' המלא (לא -slim) כולל גם את sqlldr, כך שאפשר להריץ את
+# LD_Chinuch.ctl המקורי בדיוק כמו בייצור.
+# המשתמש chinuch/chinuch123 נוצר אוטומטית ב-PDB בשם FREEPDB1.
+services:
+  oracle:
+    image: gvenzl/oracle-free:23
+    container_name: oracle-chinuch
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PASSWORD: secret123
+      APP_USER: chinuch
+      APP_USER_PASSWORD: chinuch123
+    volumes:
+      # התיקייה הזו (oracle/) ממופה לתוך הקונטיינר - שמים בה קובצי DAT
+      # והסקריפטים זמינים ב-/opt/chinuch
+      - ./:/opt/chinuch
+      - oracle-data:/opt/oracle/oradata
+
+volumes:
+  oracle-data:
