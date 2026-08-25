@@ -11,3 +11,7 @@ examples/incoming/
 
 # קולקציית Postman שנוצרת עם makePostmanCollection.js
 examples/postman_collection.json
+
+# גופי בקשה שנוצרים ע"י makeRequestBody - עלולים להכיל נתונים
+body.json
+request_body.json
