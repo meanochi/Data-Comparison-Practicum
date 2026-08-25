@@ -87,21 +87,24 @@ app.post(
 /**
  * API עבור המערכת הקיימת: השוואה מול נתוני הטבלה הזמנית במקום קובץ DAT.
  *
- * גוף הבקשה (application/json):
+ * מצב העבודה לפי האפיון הוא אחד-על-אחד - כל קריאה נושאת ת"ז אחת:
  *   {
  *     "rows": [ { "MISPAR_TNUA": "9050", "MISPAR_ZEHUT": "...", ... }, ... ],
- *     "pdfs": [ { "filename": "a.pdf", "content": "<base64>" }, ... ]
+ *     "pdf":  { "filename": "a.pdf", "content": "<base64>" }
  *   }
- * rows - שורות LD_CHINUCH_9050_TKUFOT_RETSIF; שמות העמודות כמפתחות.
- * התשובה: { summary, warnings, results } - אותם נתונים שמוצגים במסך התוצאות.
+ * rows - שורות LD_CHINUCH_9050_TKUFOT_RETSIF של אותה ת"ז; שמות העמודות
+ * כמפתחות. בקשה עם pdf בודד ויותר מת"ז אחת ב-rows נדחית עם 400.
+ * לצורך הדגמות מקומיות נתמך גם מערך pdfs (ריבוי דוחות בקריאה אחת).
+ * התשובה: { valid, text, idNumber, summary, warnings, results }.
  */
 app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
   const startedAt = Date.now();
   const stamp = new Date().toISOString();
   const { rows, pdf } = req.body ?? {};
-  // לפי האפיון הקלט הוא קובץ PDF אחד (pdf); מערך pdfs נתמך גם כן
+  // לפי האפיון הקלט הוא קובץ PDF אחד (pdf); מערך pdfs נתמך להדגמות
   let { pdfs } = req.body ?? {};
-  if (!Array.isArray(pdfs) && pdf) pdfs = [pdf];
+  const singleMode = !Array.isArray(pdfs);
+  if (singleMode && pdf) pdfs = [pdf];
   if (!Array.isArray(rows)) {
     console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר rows`);
     return res.status(400).json({ error: "נדרש שדה rows: מערך שורות מהטבלה הזמנית" });
@@ -112,6 +115,18 @@ app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
   }
   console.log(`[${stamp}] /api/compare מ-${req.ip}: התקבלו ${rows.length} שורות טבלה ו-${pdfs.length} קבצי PDF`);
 
+  const datResult = parseTableRows(rows);
+
+  // אכיפת מצב אחד-על-אחד: קריאה עם pdf בודד חייבת לשאת ת"ז אחת בלבד
+  const idsInRows = Object.keys(datResult.periodsById);
+  if (singleMode && idsInRows.length > 1) {
+    console.log(`    בקשה נדחתה - ${idsInRows.length} מספרי זהות בקריאה אחת (${idsInRows.join(", ")})`);
+    return res.status(400).json({
+      error: `הממשק עובד אחד-על-אחד: בקריאה נשלחות שורות של תעודת זהות אחת בלבד, ` +
+             `אך נמצאו ${idsInRows.length}: ${idsInRows.join(", ")}`,
+    });
+  }
+
   // לתחקור: אם מוגדר API_DUMP_DIR, גוף הבקשה נשמר שם כקובץ JSON
   if (process.env.API_DUMP_DIR) {
     const fs = await import("node:fs");
@@ -120,8 +135,6 @@ app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
     fs.writeFileSync(dumpPath, JSON.stringify(req.body, null, 2));
     console.log(`    גוף הבקשה נשמר: ${dumpPath}`);
   }
-
-  const datResult = parseTableRows(rows);
 
   const pdfResults = [];
   for (let i = 0; i < pdfs.length; i++) {
@@ -150,7 +163,14 @@ app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
     `    הושוו ${summary.total} ת"ז (תואמות: ${summary.match}, שונות: ${summary.mismatch}, ` +
     `חסרות: ${summary.missing}, שגיאות: ${summary.error}) => valid=${valid}, ${Date.now() - startedAt}ms`
   );
-  res.json({ valid, text: unifiedText(results, warnings), summary, warnings, results });
+  res.json({
+    valid,
+    idNumber: idsInRows.length === 1 ? idsInRows[0] : null,
+    text: unifiedText(results, warnings),
+    summary,
+    warnings,
+    results,
+  });
 });
 
 const PORT = process.env.PORT || 5000;

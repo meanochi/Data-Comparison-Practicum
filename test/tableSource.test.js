@@ -178,7 +178,18 @@ describe("POST /api/compare", () => {
     const [status, body] = await post({ rows, pdf });
     assert.equal(status, 200);
     assert.equal(body.valid, 1);
+    assert.equal(body.idNumber, "12345678");
     assert.equal(body.summary.match, body.summary.total);
+  });
+
+  it('מצב אחד-על-אחד: pdf בודד עם יותר מת"ז אחת נדחה ב-400', async () => {
+    const pdf = {
+      filename: "sample_12345678.pdf",
+      content: fs.readFileSync(path.join(SAMPLES, "sample_12345678.pdf")).toString("base64"),
+    };
+    const [status, body] = await post({ rows: sampleTableRows(), pdf });
+    assert.equal(status, 400);
+    assert.ok(body.error.includes("אחד-על-אחד"));
   });
 
   it("בקשה ללא rows נדחית", async () => {

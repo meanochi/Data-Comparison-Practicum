@@ -137,7 +137,14 @@ const collection = {
         'pm.test("חסר בנתונים", () => pm.expect(body.results[0].status).to.eql("missing_dat"));'],
     ),
     request(
-      "9. מקרה קצה: שורה עם ערך לא מספרי - מדולגת עם אזהרה",
+      '9. מקרה קצה: pdf בודד עם יותר מת"ז אחת - נדחה עם 400',
+      { rows: allRows, pdf: pdfOf("12345678") },
+      ['pm.test("סטטוס 400", () => pm.response.to.have.status(400));',
+        json,
+        'pm.test("הודעה על אחד-על-אחד", () => pm.expect(body.error).to.include("אחד-על-אחד"));'],
+    ),
+    request(
+      "10. מקרה קצה: שורה עם ערך לא מספרי - מדולגת עם אזהרה",
       {
         rows: [
           ...rowsOf("012345678"),
