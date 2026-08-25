@@ -11,8 +11,8 @@ import { fileURLToPath } from "node:url";
 import { after, before, describe, it } from "node:test";
 
 import { compareAll } from "../src/comparator.js";
-import { decodeDat, parseDatFile } from "../src/datParser.js";
-import { parsePdfFile } from "../src/pdfChinuchParser.js";
+import { decodeDat, parseDatFile } from "../src/parsers/datParser.js";
+import { parsePdfFile } from "../src/parsers/pdfChinuchParser.js";
 import { parseTableRows } from "../src/tableSource.js";
 import { app } from "../server.js";
 

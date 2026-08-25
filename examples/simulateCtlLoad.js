@@ -22,7 +22,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { decodeDat } from "../src/datParser.js";
+import { decodeDat } from "../src/parsers/datParser.js";
 
 const { DatabaseSync } = await import("node:sqlite").catch(() => {
   console.error("נדרש Node 22.5 ומעלה (מודול node:sqlite המובנה).");

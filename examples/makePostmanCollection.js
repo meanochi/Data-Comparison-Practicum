@@ -14,7 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { decodeDat } from "../src/datParser.js";
+import { decodeDat } from "../src/parsers/datParser.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLES = path.join(HERE, "..", "samples");

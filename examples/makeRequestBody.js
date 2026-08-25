@@ -14,8 +14,8 @@
  */
 import fs from "node:fs";
 
-import { normalizeId } from "../src/datParser.js";
-import { parsePdfBuffer } from "../src/pdfChinuchParser.js";
+import { normalizeId } from "../src/parsers/datParser.js";
+import { parsePdfBuffer } from "../src/parsers/pdfChinuchParser.js";
 import { readTableRows } from "./apiFromTable.js";
 import { DB_PATH } from "./simulateCtlLoad.js";
 

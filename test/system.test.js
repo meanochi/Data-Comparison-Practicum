@@ -13,8 +13,8 @@ import {
   ROW_PDF_ONLY,
   compareAll,
 } from "../src/comparator.js";
-import { parseDatBytes, parseDatFile } from "../src/datParser.js";
-import { parsePdfFile, toLogical, toVisual } from "../src/pdfChinuchParser.js";
+import { parseDatBytes, parseDatFile } from "../src/parsers/datParser.js";
+import { parsePdfFile, toLogical, toVisual } from "../src/parsers/pdfChinuchParser.js";
 
 const SAMPLES = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "samples");
 

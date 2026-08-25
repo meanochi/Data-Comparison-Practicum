@@ -15,7 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { normalizeId } from "../src/datParser.js";
+import { normalizeId } from "../src/parsers/datParser.js";
 import { DB_PATH } from "./simulateCtlLoad.js";
 
 const { DatabaseSync } = await import("node:sqlite").catch(() => {

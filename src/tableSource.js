@@ -20,7 +20,7 @@
  * הפלט זהה במבנהו לפלט של parseDatBytes: { periodsById, warnings, errors },
  * כך ששאר המערכת (comparator, ממשק הווב) לא מבחינה מאיזה מקור הגיעו הנתונים.
  */
-import { checkDuplicatePeriods, decodeDat, normalizeId, toInt } from "./datParser.js";
+import { checkDuplicatePeriods, decodeDat, normalizeId, toInt } from "./parsers/datParser.js";
 
 const RECORD_CODE_9050 = "9050";
 
