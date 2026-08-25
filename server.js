@@ -131,7 +131,7 @@ app.post(
         warnings.push(`ת"ז ${idNumber}: הועלה יותר ממסמך אחד - נלקח הראשון`);
         continue;
       }
-      const resp = await fetch(apiUrl, {
+      const resp = await fetch(`${apiUrl}?full=1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -176,19 +176,35 @@ app.post(
 /**
  * API עבור המערכת הקיימת: השוואה מול נתוני הטבלה הזמנית במקום קובץ DAT.
  *
- * הממשק עובד אחד-על-אחד - כל קריאה נושאת ת"ז אחת ומסמך אחד:
- *   {
- *     "rows": [ { "MISPAR_TNUA": "9050", "MISPAR_ZEHUT": "...", ... }, ... ],
- *     "pdf":  { "filename": "a.pdf", "content": "<base64>" }
- *   }
+ * הממשק עובד אחד-על-אחד - כל קריאה נושאת ת"ז אחת ומסמך אחד.
+ * שתי צורות קלט לאותו חוזה:
+ *   JSON:      { "rows": [ {...} ], "pdf": { "filename", "content": <base64> } }
+ *   form-data: שדה rows (טקסט, מערך JSON) + שדה pdf (קובץ ממש) - נוח מפוסטמן
  * rows - שורות LD_CHINUCH_9050_TKUFOT_RETSIF של אותה ת"ז; שמות העמודות
  * כמפתחות. בקשה עם יותר מת"ז אחת ב-rows נדחית עם 400.
- * התשובה: { valid, text, idNumber, summary, warnings, results }.
+ * התשובה: אותן שורות שנשלחו בתוספת valid (1/0) לכל שורה, לצד valid כולל
+ * וטקסט מאוחד: { valid, idNumber, rows, text }; עם ?full=1 נוספים גם
+ * summary/warnings/results (למסך התוצאות).
  */
-app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
+app.post("/api/compare", express.json({ limit: "200mb" }), upload.single("pdf"), async (req, res) => {
   const startedAt = Date.now();
   const stamp = new Date().toISOString();
-  const { rows, pdf } = req.body ?? {};
+  let { rows, pdf } = req.body ?? {};
+  // form-data (למשל מפוסטמן): ה-PDF מצורף כקובץ ממש ו-rows כשדה טקסט JSON
+  if (req.file) {
+    pdf = {
+      filename: Buffer.from(req.file.originalname, "latin1").toString("utf8"),
+      content: req.file.buffer.toString("base64"),
+    };
+    if (rows != null) {
+      try {
+        rows = JSON.parse(rows);
+      } catch {
+        console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - rows אינו JSON תקין`);
+        return res.status(400).json({ error: "שדה rows חייב להכיל מערך JSON תקין (כשדה טקסט לצד קובץ ה-pdf)" });
+      }
+    }
+  }
   if (!Array.isArray(rows)) {
     console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר rows`);
     return res.status(400).json({ error: "נדרש שדה rows: מערך שורות מהטבלה הזמנית" });
@@ -248,15 +264,19 @@ app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
     `    הושוו ${summary.total} ת"ז (תואמות: ${summary.match}, שונות: ${summary.mismatch}, ` +
     `חסרות: ${summary.missing}, שגיאות: ${summary.error}) => valid=${valid}, ${Date.now() - startedAt}ms`
   );
-  res.json({
+  // התשובה: אותו JSON שנשלח - השורות על כל פרטיהן, בתוספת valid לכל שורה.
+  // הפירוט המלא (summary/warnings/results) מוחזר רק למי שמבקש ?full=1
+  // (מסך התוצאות משתמש בזה).
+  const response = {
     valid,
     idNumber: idsInRows.length === 1 ? idsInRows[0] : null,
     rows: annotateSentRows(rows, results),
     text: unifiedText(results, warnings),
-    summary,
-    warnings,
-    results,
-  });
+  };
+  if (req.query.full === "1") {
+    Object.assign(response, { summary, warnings, results });
+  }
+  res.json(response);
 });
 
 const PORT = process.env.PORT || 5000;

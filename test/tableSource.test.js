@@ -138,8 +138,8 @@ describe("POST /api/compare", () => {
 
   after(() => server.close());
 
-  async function post(body) {
-    const resp = await fetch(`${baseUrl}/api/compare`, {
+  async function post(body, { full = false } = {}) {
+    const resp = await fetch(`${baseUrl}/api/compare${full ? "?full=1" : ""}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -161,18 +161,48 @@ describe("POST /api/compare", () => {
     assert.equal(body.idNumber, "12345678");
     assert.ok(body.text.includes("זהה במלואו"));
 
-    // ת"ז עם אי-התאמות
-    [status, body] = await post({ rows: rowsOf("023456789"), pdf: pdfOf("23456789") });
+    // ת"ז עם אי-התאמות - עם ?full=1 מקבלים גם את הפירוט המלא
+    [status, body] = await post({ rows: rowsOf("023456789"), pdf: pdfOf("23456789") }, { full: true });
     assert.equal(status, 200);
     assert.equal(body.valid, 0);
     assert.equal(body.summary.mismatch, 1);
     assert.ok(body.text.includes("מול"));
 
     // מסמך שאין לו שורות בטבלה
-    [status, body] = await post({ rows: [], pdf: pdfOf("45678901") });
+    [status, body] = await post({ rows: [], pdf: pdfOf("45678901") }, { full: true });
     assert.equal(status, 200);
     assert.equal(body.valid, 0);
     assert.equal(body.results[0].status, "missing_dat");
+  });
+
+  it("התשובה כברירת מחדל רזה: valid, idNumber, rows, text בלבד", async () => {
+    const [status, body] = await post({ rows: rowsOf("012345678"), pdf: pdfOf("12345678") });
+    assert.equal(status, 200);
+    assert.deepEqual(Object.keys(body).sort(), ["idNumber", "rows", "text", "valid"]);
+  });
+
+  it("form-data: ה-PDF מצורף כקובץ ממש ו-rows כשדה טקסט", async () => {
+    const fd = new FormData();
+    fd.append("rows", JSON.stringify(rowsOf("012345678")));
+    fd.append(
+      "pdf",
+      new Blob([fs.readFileSync(path.join(SAMPLES, "sample_12345678.pdf"))], { type: "application/pdf" }),
+      "sample_12345678.pdf"
+    );
+    const resp = await fetch(`${baseUrl}/api/compare`, { method: "POST", body: fd });
+    const body = await resp.json();
+    assert.equal(resp.status, 200);
+    assert.equal(body.valid, 1);
+    assert.equal(body.idNumber, "12345678");
+    assert.ok(body.rows.every((r) => r.valid === 1));
+  });
+
+  it("form-data עם rows שאינו JSON תקין נדחה ב-400", async () => {
+    const fd = new FormData();
+    fd.append("rows", "לא JSON");
+    fd.append("pdf", new Blob([Buffer.from("x")], { type: "application/pdf" }), "a.pdf");
+    const resp = await fetch(`${baseUrl}/api/compare`, { method: "POST", body: fd });
+    assert.equal(resp.status, 400);
   });
 
   it("התשובה מחזירה את השורות שנשלחו עם valid לכל שורה", async () => {
@@ -215,7 +245,7 @@ describe("POST /api/compare", () => {
     const [status, body] = await post({
       rows: rowsOf("012345678"),
       pdf: { filename: "broken.pdf", content: Buffer.from("לא PDF").toString("base64") },
-    });
+    }, { full: true });
     assert.equal(status, 200);
     assert.equal(body.valid, 0);
     assert.equal(body.summary.error, 1);
