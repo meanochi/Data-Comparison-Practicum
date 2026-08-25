@@ -242,6 +242,43 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
 }
 
 /**
+ * טקסט מאוחד המרכז את כל התוצאות והפערים (לפי אפיון ה-API):
+ * שורת סיכום, שורה לכל מספר זהות, ופירוט כל פער תחת הת"ז שלו.
+ */
+export function unifiedText(results, warnings) {
+  const lines = [];
+  const statusText = {
+    match: "זהה במלואו",
+    mismatch: "נמצאו אי-התאמות",
+    missing_pdf: "קיים בנתונים בלבד (חסר PDF)",
+    missing_dat: "קיים ב-PDF בלבד (חסר בנתונים)",
+    error: "שגיאה בפענוח",
+  };
+  for (const r of results) {
+    let line = `ת"ז ${r.idNumber}: ${statusText[r.status] ?? r.status}`;
+    if (r.totalCompared > 0) {
+      line += ` (${r.matched} מתוך ${r.totalCompared} תקופות זהות)`;
+    }
+    lines.push(line);
+    for (const row of r.rows) {
+      const period = `תקופה ${row.startDisplay} - ${row.endDisplay}`;
+      if (row.status === ROW_DIFF) {
+        for (const d of row.diffs) {
+          lines.push(`  - ${period}: ${d.fieldName}: ב-PDF "${d.pdfValue}" מול "${d.datValue}" בנתונים`);
+        }
+      } else if (row.status === ROW_DAT_ONLY) {
+        lines.push(`  - ${period}: קיימת בנתונים אך לא נמצאה ב-PDF`);
+      } else if (row.status === ROW_PDF_ONLY) {
+        lines.push(`  - ${period}: מופיעה ב-PDF אך לא נמצאה בנתונים`);
+      }
+    }
+    for (const e of r.errors) lines.push(`  - שגיאה: ${e}`);
+  }
+  for (const w of warnings) lines.push(`אזהרה: ${w}`);
+  return lines.join("\n");
+}
+
+/**
  * השוואה מלאה: תוצאת פענוח DAT מול רשימת [שם קובץ, תוצאת פענוח PDF].
  *
  * מחזיר { results: רשימת תוצאות ממוינת, warnings: אזהרות כלליות }.
