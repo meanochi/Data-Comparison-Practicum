@@ -4,7 +4,7 @@
  * ההתאמה בין שורות נעשית לפי מפתח (תאריך התחלה, תאריך סיום),
  * ולאחר מכן מושווים: סוג תקופה, אורך שירות, סוג זכויות והיקף משרה.
  */
-import { fmtDate } from "./datParser.js";
+import { fmtDate } from "./parsers/datParser.js";
 import {
   EXCLUDED_TKUFA_CODES,
   PDF_TKUFA_LABELS,

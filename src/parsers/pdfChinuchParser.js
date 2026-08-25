@@ -6,7 +6,7 @@
  * שמשתמש באותו extractVisualLines ומגדיר רק את הרג'קסים ומבנה השורה שלו.
  */
 import fs from "node:fs";
-import { extractVisualLines, normalizeDashes, toLogical, toVisual } from "./pdfText.js";
+import { extractVisualLines, normalizeDashes, toLogical, toVisual } from "../pdfText.js";
 
 // ייצוא חוזר לנוחות הצרכנים (בדיקות, פרסרים עתידיים)
 export { toLogical, toVisual, normalizeDashes };

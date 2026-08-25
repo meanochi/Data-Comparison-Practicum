@@ -11,9 +11,9 @@ import express from "express";
 import multer from "multer";
 
 import { compareAll } from "./src/comparator.js";
-import { parseDatBytes } from "./src/datParser.js";
+import { parseDatBytes } from "./src/parsers/datParser.js";
 import { parseTableRows } from "./src/tableSource.js";
-import { parsePdfBuffer } from "./src/pdfChinuchParser.js";
+import { parsePdfBuffer } from "./src/parsers/pdfChinuchParser.js";
 import { fmtG } from "./src/comparator.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
