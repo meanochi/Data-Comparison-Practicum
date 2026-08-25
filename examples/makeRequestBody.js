@@ -1,24 +1,31 @@
 /**
- * בניית גוף בקשה ל-POST /api/compare מקובץ DAT וקובץ PDF אמיתיים.
+ * בניית גוף בקשה ל-POST /api/compare - כמו במציאות: מתוך הטבלה.
  *
- * הסקריפט ממיר את ה-DAT לשורות בפורמט הטבלה (כמו שהטעינה עושה במציאות),
- * מפענח את ה-PDF כדי לזהות את תעודת הזהות שלו, בוחר מהקובץ רק את השורות
- * של אותה ת"ז (חוזה אחד-על-אחד), וכותב קובץ JSON מוכן לשליחה מפוסטמן.
+ * במציאות אין קובץ DAT אצל הקורא ל-API - יש שורות בטבלה הזמנית. הסקריפט
+ * מפענח את ה-PDF כדי לזהות את תעודת הזהות שלו, שולף מהטבלה
+ * (LD_CHINUCH_9050_TKUFOT_RETSIF שנטענה קודם) רק את השורות של אותה ת"ז
+ * (חוזה אחד-על-אחד), וכותב קובץ JSON מוכן לשליחה מפוסטמן.
  *
  * שימוש:
- *     node examples/makeRequestBody.js <קובץ.dat> <קובץ.pdf> [קובץ-פלט.json]
+ *     node examples/simulateCtlLoad.js [קובץ.dat]     # קודם: מילוי הטבלה
+ *     node examples/makeRequestBody.js <קובץ.pdf> [קובץ-פלט.json]
  * ואז בפוסטמן: POST {{baseUrl}}/api/compare, לשונית Body -> raw -> JSON,
- * ומדביקים את תוכן הקובץ (או משתמשים ב-binary/import).
+ * ומדביקים את תוכן הקובץ.
  */
 import fs from "node:fs";
 
 import { normalizeId } from "../src/datParser.js";
-import { tableRowsFromDatBytes } from "../src/tableSource.js";
 import { parsePdfBuffer } from "../src/pdfChinuchParser.js";
+import { readTableRows } from "./apiFromTable.js";
+import { DB_PATH } from "./simulateCtlLoad.js";
 
-const [datPath, pdfPath, outPath = "request_body.json"] = process.argv.slice(2);
-if (!datPath || !pdfPath) {
-  console.error("שימוש: node examples/makeRequestBody.js <קובץ.dat> <קובץ.pdf> [קובץ-פלט.json]");
+const [pdfPath, outPath = "request_body.json"] = process.argv.slice(2);
+if (!pdfPath) {
+  console.error("שימוש: node examples/makeRequestBody.js <קובץ.pdf> [קובץ-פלט.json]");
+  process.exit(1);
+}
+if (!fs.existsSync(DB_PATH)) {
+  console.error(`הטבלה עוד לא נטענה (אין ${DB_PATH}) - יש להריץ קודם: node examples/simulateCtlLoad.js`);
   process.exit(1);
 }
 
@@ -30,7 +37,9 @@ if (parsed.idNumber === null) {
   process.exit(1);
 }
 
-const allRows = tableRowsFromDatBytes(fs.readFileSync(datPath));
+// מה שהמערכת הקיימת עושה במציאות:
+// SELECT * FROM LD_CHINUCH_9050_TKUFOT_RETSIF WHERE <ת"ז> ORDER BY SEQ
+const allRows = readTableRows();
 const rows = allRows.filter(
   (r) => normalizeId(String(r.MISPAR_ZEHUT ?? "")) === parsed.idNumber
 );
@@ -42,5 +51,5 @@ const body = {
 fs.writeFileSync(outPath, JSON.stringify(body, null, 1));
 
 console.log(`ת"ז שזוהתה במסמך: ${parsed.idNumber}`);
-console.log(`שורות 9050 של הת"ז בקובץ ה-DAT: ${rows.length} (מתוך ${allRows.length} בסך הכל)`);
+console.log(`שורות שנשלפו מהטבלה עבור הת"ז: ${rows.length} (מתוך ${allRows.length} בטבלה)`);
 console.log(`נכתב: ${outPath} - מוכן לשליחה מפוסטמן אל POST /api/compare`);
