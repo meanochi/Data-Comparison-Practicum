@@ -20,9 +20,34 @@
  * הפלט זהה במבנהו לפלט של parseDatBytes: { periodsById, warnings, errors },
  * כך ששאר המערכת (comparator, ממשק הווב) לא מבחינה מאיזה מקור הגיעו הנתונים.
  */
-import { checkDuplicatePeriods, normalizeId, toInt } from "./datParser.js";
+import { checkDuplicatePeriods, decodeDat, normalizeId, toInt } from "./datParser.js";
 
 const RECORD_CODE_9050 = "9050";
+
+// סדר העמודות בבלוק ה-9050 של LD_Chinuch.ctl (לפי סדר השדות בקובץ)
+export const CTL_9050_COLUMNS = [
+  "MISPAR_TNUA", "KOD_PEULA", "SEMEL_MISRAD", "MISPAR_ZEHUT", "ZIHUY_NOSAF",
+  "SUG_TKUFA", "TAARICH_ME", "TAARICH_AD", "ORECH_SHERUT",
+  "SUG_ZECHUYOT_LEGIMLA", "HEKEF_MISRA",
+];
+
+/**
+ * המרת קובץ DAT לשורות בפורמט הטבלה הזמנית - מה שהטעינה (ה-CTL) עושה
+ * במציאות. משמש את מסך ההעלאה כדי לקרוא ל-API באותו חוזה אחד-על-אחד.
+ */
+export function tableRowsFromDatBytes(buf) {
+  return decodeDat(buf)
+    .split(/\r\n|\r|\n/)
+    .filter((line) => line.startsWith(`${RECORD_CODE_9050}~`))
+    .map((line, i) => {
+      const fields = line.replace(/\s+$/, "").split("~");
+      const row = Object.fromEntries(
+        CTL_9050_COLUMNS.map((col, c) => [col, fields[c]?.trim() ?? null])
+      );
+      row.SEQ = i + 1;
+      return row;
+    });
+}
 
 // העמודות שההשוואה צריכה; רשומה שחסרה אחת מהן מדווחת כשגיאה ומדולגת.
 const REQUIRED_COLUMNS = [

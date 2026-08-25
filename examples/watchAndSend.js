@@ -18,7 +18,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadDatToTable } from "./simulateCtlLoad.js";
-import { compareViaApi, printComparison, readPdfs, readTableRows } from "./apiFromTable.js";
+import { compareAllIds } from "./apiFromTable.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLES = path.join(HERE, "..", "samples");
@@ -43,15 +43,12 @@ async function processDatFile(fname) {
   if (loaded === 0) {
     console.log("אין שורות 9050 בקובץ - לא נשלחת בקשה.");
   } else {
-    // שלב 2: מה שהמערכת הקיימת תעשה - SELECT מהטבלה ושליחה ל-API
-    const rows = readTableRows();
-    let pdfs = readPdfs(watchDir);
-    if (pdfs.length === 0) {
-      console.log("אין קבצי PDF בתיקיית הקליטה - נשלחים קבצי הדוגמה מ-samples/.");
-      pdfs = readPdfs(SAMPLES);
-    }
-    console.log(`שולח ${rows.length} שורות ו-${pdfs.length} קבצי PDF אל ${baseUrl}/api/compare ...`);
-    printComparison(await compareViaApi(baseUrl, rows, pdfs));
+    // שלב 2: מה שהמערכת הקיימת תעשה - קריאה נפרדת לכל ת"ז (אחד-על-אחד),
+    // עם מסמך ה-PDF שלה. המסמכים מאותרים בתיקיית הקליטה, ואם אין בה
+    // PDF-ים - בתיקיית הדוגמאות.
+    const hasPdfs = fs.readdirSync(watchDir).some((f) => f.toLowerCase().endsWith(".pdf"));
+    if (!hasPdfs) console.log("אין קבצי PDF בתיקיית הקליטה - המסמכים יאותרו ב-samples/.");
+    await compareAllIds(baseUrl, hasPdfs ? watchDir : SAMPLES);
   }
 
   // שלב 3: העברה ל-processed/ עם חותמת זמן, כדי שהתיקייה תישאר נקייה

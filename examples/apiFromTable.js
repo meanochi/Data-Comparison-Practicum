@@ -1,9 +1,10 @@
 /**
  * הצד השני של הסימולציה: מה שהמערכת הקיימת עושה מול ה-API שלנו.
  *
- * שולף את השורות מהטבלה (SELECT אמיתי, שמות העמודות הופכים למפתחות של כל
- * רשומת JSON - בדיוק כמו ב-Oracle), מצרף את קבצי ה-PDF ב-base64, ושולח
- * ל-POST /api/compare.
+ * הממשק עובד אחד-על-אחד: כל קריאה נושאת את שורות הטבלה של תעודת זהות
+ * אחת + מסמך ה-PDF שלה. הסקריפט שולף את השורות מהטבלה (SELECT אמיתי,
+ * שמות העמודות הופכים למפתחות - כמו ב-Oracle), מקבץ לפי ת"ז, מאתר לכל
+ * ת"ז את קובץ ה-PDF שלה לפי שם הקובץ, ושולח קריאה נפרדת לכל אחת.
  *
  * הרצה (אחרי node examples/simulateCtlLoad.js, וכשהשרת פעיל ב-npm start):
  *     node examples/apiFromTable.js [http://localhost:5000] [תיקיית-PDF]
@@ -14,6 +15,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { normalizeId } from "../src/datParser.js";
 import { DB_PATH } from "./simulateCtlLoad.js";
 
 const { DatabaseSync } = await import("node:sqlite").catch(() => {
@@ -33,24 +35,37 @@ export function readTableRows(dbPath = DB_PATH) {
   return rows;
 }
 
-/** קריאת כל קבצי ה-PDF שבתיקייה, ב-base64. */
-export function readPdfs(pdfDir) {
-  return fs
+/** קיבוץ שורות הטבלה לפי תעודת זהות (מנורמלת, ללא אפסים מובילים). */
+export function groupRowsById(rows) {
+  const byId = new Map();
+  for (const r of rows) {
+    const id = normalizeId(String(r.MISPAR_ZEHUT ?? ""));
+    if (!byId.has(id)) byId.set(id, []);
+    byId.get(id).push(r);
+  }
+  return byId;
+}
+
+/** איתור מסמך ה-PDF של ת"ז לפי שם הקובץ (עם או בלי אפס מוביל). */
+export function pdfForId(pdfDir, idNumber) {
+  const hit = fs
     .readdirSync(pdfDir)
     .filter((f) => f.toLowerCase().endsWith(".pdf"))
     .sort()
-    .map((f) => ({
-      filename: f,
-      content: fs.readFileSync(path.join(pdfDir, f)).toString("base64"),
-    }));
+    .find((f) => f.includes(idNumber) || f.includes(`0${idNumber}`));
+  if (!hit) return null;
+  return {
+    filename: hit,
+    content: fs.readFileSync(path.join(pdfDir, hit)).toString("base64"),
+  };
 }
 
-/** הקריאה ל-API. מחזיר { summary, warnings, results }; זורק שגיאה על כישלון. */
-export async function compareViaApi(baseUrl, rows, pdfs) {
+/** קריאה אחת לפי האפיון: שורות של ת"ז אחת + מסמך PDF אחד. */
+export async function compareIdViaApi(baseUrl, rows, pdf) {
   const resp = await fetch(`${baseUrl}/api/compare`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ rows, pdfs }),
+    body: JSON.stringify({ rows, pdf }),
   });
   if (!resp.ok) {
     throw new Error(`שגיאה ${resp.status}: ${await resp.text()}`);
@@ -58,23 +73,26 @@ export async function compareViaApi(baseUrl, rows, pdfs) {
   return resp.json();
 }
 
-/** הדפסת תוצאות ההשוואה לקונסול. */
-export function printComparison({ summary, warnings, results }) {
-  console.log("\nסיכום:", summary);
-  for (const w of warnings) console.log("אזהרה:", w);
-  console.log("");
-  for (const r of results) {
-    console.log(
-      `ת"ז ${r.idNumber}: ${r.status}` +
-      (r.totalCompared ? ` (${r.matched}/${r.totalCompared} תקופות תואמות, ${r.percent}%)` : "")
-    );
-    for (const row of r.rows) {
-      for (const d of row.diffs) {
-        console.log(`    ${row.startDisplay} - ${row.endDisplay} | ${d.fieldName}: ` +
-          `PDF="${d.pdfValue}" מול טבלה="${d.datValue}"`);
-      }
+/**
+ * הזרימה המלאה: קריאה נפרדת לכל ת"ז שבטבלה, עם המסמך שלה מ-pdfDir.
+ * מדפיס את התוצאות ומחזיר את רשימת התשובות.
+ */
+export async function compareAllIds(baseUrl, pdfDir) {
+  const byId = groupRowsById(readTableRows());
+  console.log(`בטבלה ${byId.size} תעודות זהות - נשלחת קריאה נפרדת לכל אחת:`);
+  const responses = [];
+  for (const [id, rows] of byId) {
+    const pdf = pdfForId(pdfDir, id);
+    if (!pdf) {
+      console.log(`\nת"ז ${id}: לא נמצא מסמך PDF בתיקייה - לא נשלחה קריאה`);
+      continue;
     }
+    const body = await compareIdViaApi(baseUrl, rows, pdf);
+    responses.push(body);
+    console.log(`\nת"ז ${id} (${pdf.filename}): valid=${body.valid}`);
+    console.log(body.text.split("\n").map((l) => `  ${l}`).join("\n"));
   }
+  return responses;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
@@ -85,8 +103,5 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     console.error(`לא נמצאה הטבלה (${DB_PATH}) - יש להריץ קודם: node examples/simulateCtlLoad.js`);
     process.exit(1);
   }
-  const rows = readTableRows();
-  const pdfs = readPdfs(pdfDir);
-  console.log(`נשלפו ${rows.length} שורות מהטבלה; שולח עם ${pdfs.length} קבצי PDF אל ${baseUrl}/api/compare ...`);
-  printComparison(await compareViaApi(baseUrl, rows, pdfs));
+  await compareAllIds(baseUrl, pdfDir);
 }
