@@ -61,7 +61,7 @@ const REQUIRED_COLUMNS = [
 ];
 
 /** מפתחות העמודות מגיעים מ-Oracle באותיות גדולות; מנרמלים ליתר ביטחון. */
-function normalizeKeys(raw) {
+export function normalizeKeys(raw) {
   const row = {};
   for (const [key, value] of Object.entries(raw)) {
     row[key.trim().toUpperCase()] = typeof value === "string" ? value.trim() : value;

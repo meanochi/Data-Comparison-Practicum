@@ -83,6 +83,7 @@ const collection = {
         'pm.test("valid=1", () => pm.expect(body.valid).to.eql(1));',
         'pm.test("idNumber נכון", () => pm.expect(body.idNumber).to.eql("12345678"));',
         'pm.test("ההתאמה מלאה", () => pm.expect(body.summary.match).to.eql(body.summary.total));',
+        'pm.test("השורות חוזרות עם valid", () => pm.expect(body.rows.every(r => r.valid === 1)).to.be.true);',
         'pm.test("יש טקסט מאוחד", () => pm.expect(body.text).to.include("זהה במלואו"));'],
     ),
     request(
@@ -91,6 +92,7 @@ const collection = {
       [ok, json,
         'pm.test("valid=0", () => pm.expect(body.valid).to.eql(0));',
         'pm.test("יש אי-התאמות", () => pm.expect(body.summary.mismatch).to.be.above(0));',
+        'pm.test("יש שורות שחוזרות עם valid=0 ו-reason", () => pm.expect(body.rows.some(r => r.valid === 0 && r.reason)).to.be.true);',
         'pm.test("הטקסט מפרט פערים", () => pm.expect(body.text).to.include("מול"));'],
     ),
     request(

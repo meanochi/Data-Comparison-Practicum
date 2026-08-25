@@ -175,6 +175,25 @@ describe("POST /api/compare", () => {
     assert.equal(body.results[0].status, "missing_dat");
   });
 
+  it("התשובה מחזירה את השורות שנשלחו עם valid לכל שורה", async () => {
+    const sent = rowsOf("023456789");
+    const [status, body] = await post({ rows: sent, pdf: pdfOf("23456789") });
+    assert.equal(status, 200);
+    assert.equal(body.rows.length, sent.length);
+    // השורות חוזרות כפי שנשלחו, בתוספת valid (ו-reason כשלא תקין)
+    for (const [i, row] of body.rows.entries()) {
+      assert.equal(row.MISPAR_ZEHUT, sent[i].MISPAR_ZEHUT);
+      assert.equal(row.SEQ, sent[i].SEQ);
+      assert.ok(row.valid === 0 || row.valid === 1);
+      if (row.valid === 0) assert.ok(row.reason.length > 0);
+    }
+    const byStart = new Map(body.rows.map((r) => [r.TAARICH_ME, r]));
+    assert.equal(byStart.get("01092000").valid, 1);                    // תואמת במלואה
+    assert.equal(byStart.get("01092005").valid, 0);                    // היקף משרה שונה
+    assert.ok(byStart.get("01092005").reason.includes("היקף משרה"));
+    assert.equal(byStart.get("01092013").valid, 0);                    // אין תקופה כזו במסמך
+  });
+
   it('יותר מת"ז אחת בקריאה נדחית ב-400', async () => {
     const [status, body] = await post({ rows: sampleTableRows(), pdf: pdfOf("12345678") });
     assert.equal(status, 400);

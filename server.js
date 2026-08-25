@@ -12,7 +12,7 @@ import multer from "multer";
 
 import { compareAll, unifiedText } from "./src/comparator.js";
 import { normalizeId } from "./src/parsers/datParser.js";
-import { parseTableRows, tableRowsFromDatBytes } from "./src/tableSource.js";
+import { normalizeKeys, parseTableRows, tableRowsFromDatBytes } from "./src/tableSource.js";
 import { parsePdfBuffer } from "./src/parsers/pdfChinuchParser.js";
 import { fmtG } from "./src/comparator.js";
 
@@ -32,6 +32,51 @@ const helpers = {
   fmtG,
   fmtF3: (n) => Number(n).toFixed(3),
 };
+
+/**
+ * החזרת השורות שנשלחו כפי שהן, עם תוספת לכל שורה:
+ *   valid  - 1 אם השורה נמצאה תואמת במלואה במסמך, 0 אחרת
+ *   reason - פירוט קצר כשהשורה אינה תקינה (או הערה כשאינה מושווית)
+ */
+function annotateSentRows(rawRows, results) {
+  const rowIndex = new Map();
+  const excludedKeys = new Set();
+  for (const r of results) {
+    for (const row of r.rows) {
+      if (row.datRow) rowIndex.set(`${r.idNumber}|${row.datRow.start}|${row.datRow.end}`, row);
+    }
+    for (const ex of r.excluded) excludedKeys.add(`${r.idNumber}|${ex.start}|${ex.end}`);
+  }
+
+  return rawRows.map((raw) => {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      return { row: raw, valid: 0, reason: "רשומה שאינה אובייקט - לא נבדקה" };
+    }
+    const row = normalizeKeys(raw);
+    const key =
+      `${normalizeId(String(row.MISPAR_ZEHUT ?? ""))}|` +
+      `${String(row.TAARICH_ME ?? "")}|${String(row.TAARICH_AD ?? "")}`;
+
+    const resultRow = rowIndex.get(key);
+    if (resultRow) {
+      if (resultRow.status === "match") return { ...raw, valid: 1 };
+      if (resultRow.status === "diff") {
+        return {
+          ...raw,
+          valid: 0,
+          reason: resultRow.diffs
+            .map((d) => `${d.fieldName}: במסמך "${d.pdfValue}" מול "${d.datValue}" בנתונים`)
+            .join("; "),
+        };
+      }
+      return { ...raw, valid: 0, reason: "לא נמצאה תקופה תואמת במסמך" };
+    }
+    if (excludedKeys.has(key)) {
+      return { ...raw, valid: 1, reason: "עזיבה - אינה מודפסת במסמך ולא נכללת בהשוואה" };
+    }
+    return { ...raw, valid: 0, reason: "השורה לא נקלטה (ערך שגוי או רשומה שאינה 9050)" };
+  });
+}
 
 function buildSummary(results) {
   return {
@@ -206,6 +251,7 @@ app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
   res.json({
     valid,
     idNumber: idsInRows.length === 1 ? idsInRows[0] : null,
+    rows: annotateSentRows(rows, results),
     text: unifiedText(results, warnings),
     summary,
     warnings,
