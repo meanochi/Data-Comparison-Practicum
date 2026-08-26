@@ -246,15 +246,15 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
     );
     return finalizeIdResult(res);
   }
+  if (pdfResult.errors.length > 0) {
+    res.status = "error";
+    return finalizeIdResult(res);
+  }
   if (datPeriods.length === 0) {
     res.status = "missing_dat";
     res.rows = pdfResult.periods.map((p) =>
       rowResult(ROW_PDF_ONLY, p.start, p.end, { pdfRow: pdfRowDict(p) })
     );
-    return finalizeIdResult(res);
-  }
-  if (pdfResult.errors.length > 0) {
-    res.status = "error";
     return finalizeIdResult(res);
   }
 

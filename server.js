@@ -4,14 +4,15 @@
  *
  * הרצה:  npm start  (או node server.js)  ואז לפתוח בדפדפן  http://localhost:5000
  */
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import express from "express";
 import multer from "multer";
+import swaggerUi from "swagger-ui-express";
 
-
-import { compareAll, unifiedText } from "./src/comparator.js";
+import { compareId, unifiedText } from "./src/comparator.js";
 import { normalizeId } from "./src/parsers/datParser.js";
 import { normalizeKeys, parseTableRows, tableRowsFromDatBytes } from "./src/tableSource.js";
 import { parsePdfBuffer } from "./src/parsers/pdfChinuchParser.js";
@@ -88,6 +89,10 @@ function buildSummary(results) {
     error: results.filter((r) => r.status === "error").length,
   };
 }
+
+// תיעוד אינטראקטיבי של ה-API: http://localhost:5000/api-docs
+const openapiSpec = JSON.parse(readFileSync(path.join(__dirname, "openapi.json"), "utf8"));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 app.get("/", (req, res) => {
   res.render("index", { error: null });
@@ -214,7 +219,6 @@ app.post("/api/compare", express.json({ limit: "200mb" }), upload.single("pdf"),
     console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר pdf`);
     return res.status(400).json({ error: "נדרש שדה pdf: { filename, content (base64) } - מסמך אחד לקריאה" });
   }
-  const pdfs = [pdf];
   console.log(`[${stamp}] /api/compare מ-${req.ip}: התקבלו ${rows.length} שורות טבלה ומסמך "${pdf.filename ?? "?"}"`);
 
   const datResult = parseTableRows(rows);
@@ -238,26 +242,28 @@ app.post("/api/compare", express.json({ limit: "200mb" }), upload.single("pdf"),
     console.log(`    גוף הבקשה נשמר: ${dumpPath}`);
   }
 
-  const pdfResults = [];
-  for (let i = 0; i < pdfs.length; i++) {
-    const { filename = `pdf-${i + 1}`, content } = pdfs[i] ?? {};
-    try {
-      if (typeof content !== "string" || content === "") {
-        throw new Error("שדה content חסר או ריק");
-      }
-      pdfResults.push([filename, await parsePdfBuffer(Buffer.from(content, "base64"))]);
-    } catch (exc) {
-      // קובץ פגום לא מפיל את כל הבקשה - מדווח כתוצאת שגיאה עבור הקובץ הזה
-      pdfResults.push([filename, {
-        idNumber: null,
-        periods: [],
-        warnings: [],
-        errors: [`שגיאה בפענוח ${filename}: ${exc.message}`],
-      }]);
+  // פענוח מסמך ה-PDF היחיד; קובץ פגום לא מפיל את הבקשה - מדווח כשגיאת השוואה
+  let pdfResult;
+  try {
+    if (typeof pdf.content !== "string" || pdf.content === "") {
+      throw new Error("שדה content חסר או ריק");
     }
+    pdfResult = await parsePdfBuffer(Buffer.from(pdf.content, "base64"));
+  } catch (exc) {
+    pdfResult = {
+      idNumber: null,
+      periods: [],
+      warnings: [],
+      errors: [`שגיאה בפענוח ${pdf.filename ?? "?"}: ${exc.message}`],
+    };
   }
 
-  const { results, warnings } = compareAll(datResult, pdfResults);
+  // השוואה אחד-על-אחד: ת"ז אחת (מה-rows, ואם אין - מה-PDF) מול המסמך היחיד
+  const compareIdNumber = idsInRows[0] ?? pdfResult.idNumber ?? "?";
+  const results = [
+    compareId(compareIdNumber, datResult.periodsById[compareIdNumber], pdfResult, pdf.filename),
+  ];
+  const warnings = [...datResult.warnings, ...datResult.errors];
   const summary = buildSummary(results);
   // אינדיקציית תקינות לפי האפיון: 1 רק כשכל ההשוואות תקינות במלואן
   const valid = summary.total > 0 && summary.match === summary.total ? 1 : 0;

@@ -205,6 +205,12 @@ describe("POST /api/compare", () => {
     assert.equal(resp.status, 400);
   });
 
+  it("תיעוד ה-API זמין ב-/api-docs (Swagger UI)", async () => {
+    const resp = await fetch(`${baseUrl}/api-docs/`);
+    assert.equal(resp.status, 200);
+    assert.ok((await resp.text()).includes("swagger-ui"));
+  });
+
   it("התשובה מחזירה את השורות שנשלחו עם valid לכל שורה", async () => {
     const sent = rowsOf("023456789");
     const [status, body] = await post({ rows: sent, pdf: pdfOf("23456789") });
@@ -239,6 +245,16 @@ describe("POST /api/compare", () => {
     const [status, body] = await post({ rows: rowsOf("012345678") });
     assert.equal(status, 400);
     assert.ok(body.error.includes("pdf"));
+  });
+
+  it("rows ריק + PDF פגום יחד - מדווח כשגיאה, לא כחסר בנתונים", async () => {
+    const [status, body] = await post({
+      rows: [],
+      pdf: { filename: "broken.pdf", content: Buffer.from("לא PDF").toString("base64") },
+    }, { full: true });
+    assert.equal(status, 200);
+    assert.equal(body.valid, 0);
+    assert.equal(body.results[0].status, "error");
   });
 
   it("PDF פגום מדווח כשגיאה בלי להפיל את הבקשה", async () => {
