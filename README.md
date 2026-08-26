@@ -101,7 +101,8 @@ ISO-8859-8 ו-UTF-8). מפוענחות רק שורות שמתחילות ב-`9050
 המערכת הקיימת טוענת את קובץ הממשק עם SQL*Loader (קובץ הבקרה `LD_Chinuch.ctl`)
 לטבלאות `LD_CHINUCH_*`. במקום להעביר לנו קובץ DAT, היא קוראת ל-API שלנו
 **אחד-על-אחד**: כל קריאה נושאת את שורות טבלת
-`LD_CHINUCH_9050_TKUFOT_RETSIF` של תעודת זהות אחת + מסמך ה-PDF שלה:
+`LD_CHINUCH_9050_TKUFOT_RETSIF` של תעודת זהות אחת + מסמך ה-PDF שלה
+(DDL מלא ל-Oracle: `sql/LD_CHINUCH_9050_TKUFOT_RETSIF.sql`):
 
 ```
 POST /api/compare
