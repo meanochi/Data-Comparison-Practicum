@@ -1,5 +1,6 @@
 /**
- * השוואת תקופות עבודה בין קובץ DAT לקבצי PDF.
+ * השוואת תקופות עבודה בין נתוני תקופות עבודה (מקובץ DAT או מטבלה זמנית,
+ * ראו tableSource.js) לבין קבצי PDF.
  *
  * ההתאמה בין שורות נעשית לפי מפתח (תאריך התחלה, תאריך סיום),
  * ולאחר מכן מושווים: סוג תקופה, אורך שירות, סוג זכויות והיקף משרה.
@@ -22,7 +23,7 @@ const HEIKEF_TOLERANCE = 0.0005;
 // סטטוסים לשורה בודדת
 export const ROW_MATCH = "match";        // כל השדות זהים
 export const ROW_DIFF = "diff";          // נמצאה אי-התאמה בשדות
-export const ROW_DAT_ONLY = "dat_only";  // תקופה שקיימת רק ב-DAT
+export const ROW_DATA_ONLY = "data_only";  // תקופה שקיימת רק בנתונים (DAT/טבלה)
 export const ROW_PDF_ONLY = "pdf_only";  // תקופה שקיימת רק ב-PDF
 
 /** עיצוב מספר בסגנון %g של פייתון (6 ספרות משמעותיות, בלי אפסים עודפים). */
@@ -37,14 +38,14 @@ function rowResult(status, start = null, end = null, extra = {}) {
     end,
     diffs: [],
     pdfRow: null,
-    datRow: null,
+    dataRow: null,
     startDisplay: start ? fmtDate(start) : "",
     endDisplay: end ? fmtDate(end) : "",
     ...extra,
   };
 }
 
-function datRowDict(d) {
+function dataRowDict(d) {
   return {
     sugTkufa: d.sugTkufa,
     sugTkufaTeur: SUG_TKUFA[d.sugTkufa] ?? `קוד לא מוכר (${d.sugTkufa})`,
@@ -70,21 +71,21 @@ function pdfRowDict(p) {
 }
 
 /** השוואת שורה בודדת. מחזיר רשימת אי-התאמות (ריקה = זהה). */
-function compareRow(pdfRow, datRow, warnings) {
+function compareRow(pdfRow, dataRow, warnings) {
   const diffs = [];
 
-  // סוג תקופה. כלל מיוחד: "שבתון" ב-PDF = קוד 2 + זכויות 67 ב-DAT
+  // סוג תקופה. כלל מיוחד: "שבתון" ב-PDF = קוד 2 + זכויות 67 בנתונים
   if (pdfRow.tkufaLabel === SABBATICAL_LABEL) {
     const ok =
-      datRow.sugTkufa === SABBATICAL_TKUFA_CODE &&
-      datRow.sugZchuyot === SABBATICAL_ZCHUYOT_CODE;
+      dataRow.sugTkufa === SABBATICAL_TKUFA_CODE &&
+      dataRow.sugZchuyot === SABBATICAL_ZCHUYOT_CODE;
     if (!ok) {
       diffs.push({
         fieldName: "סוג תקופה",
         pdfValue: "שבתון",
-        datValue:
-          `${datRow.sugTkufa} (${SUG_TKUFA[datRow.sugTkufa] ?? "לא מוכר"}) ` +
-          `+ זכויות ${datRow.sugZchuyot}`,
+        dataValue:
+          `${dataRow.sugTkufa} (${SUG_TKUFA[dataRow.sugTkufa] ?? "לא מוכר"}) ` +
+          `+ זכויות ${dataRow.sugZchuyot}`,
       });
     }
   } else {
@@ -97,23 +98,23 @@ function compareRow(pdfRow, datRow, warnings) {
       diffs.push({
         fieldName: "סוג תקופה",
         pdfValue: `${pdfRow.tkufaLabel} (תווית לא מוכרת)`,
-        datValue: `${datRow.sugTkufa} (${SUG_TKUFA[datRow.sugTkufa] ?? "לא מוכר"})`,
+        dataValue: `${dataRow.sugTkufa} (${SUG_TKUFA[dataRow.sugTkufa] ?? "לא מוכר"})`,
       });
-    } else if (!allowed.has(datRow.sugTkufa)) {
+    } else if (!allowed.has(dataRow.sugTkufa)) {
       diffs.push({
         fieldName: "סוג תקופה",
         pdfValue: pdfRow.tkufaLabel,
-        datValue: `${datRow.sugTkufa} (${SUG_TKUFA[datRow.sugTkufa] ?? "לא מוכר"})`,
+        dataValue: `${dataRow.sugTkufa} (${SUG_TKUFA[dataRow.sugTkufa] ?? "לא מוכר"})`,
       });
     }
   }
 
   // אורך שירות (חודשים)
-  if (Math.abs(pdfRow.months - datRow.months) > MONTHS_TOLERANCE) {
+  if (Math.abs(pdfRow.months - dataRow.months) > MONTHS_TOLERANCE) {
     diffs.push({
       fieldName: "אורך שירות (חודשים)",
       pdfValue: fmtG(pdfRow.months),
-      datValue: fmtG(datRow.months),
+      dataValue: fmtG(dataRow.months),
     });
   }
 
@@ -127,22 +128,22 @@ function compareRow(pdfRow, datRow, warnings) {
     diffs.push({
       fieldName: "סוג זכויות",
       pdfValue: `${pdfRow.zchuyotLabel} (תווית לא מוכרת)`,
-      datValue: `${datRow.sugZchuyot} (${SUG_ZCHUYOT[datRow.sugZchuyot] ?? "לא מוכר"})`,
+      dataValue: `${dataRow.sugZchuyot} (${SUG_ZCHUYOT[dataRow.sugZchuyot] ?? "לא מוכר"})`,
     });
-  } else if (!allowedZ.has(datRow.sugZchuyot)) {
+  } else if (!allowedZ.has(dataRow.sugZchuyot)) {
     diffs.push({
       fieldName: "סוג זכויות",
       pdfValue: pdfRow.zchuyotLabel,
-      datValue: `${datRow.sugZchuyot} (${SUG_ZCHUYOT[datRow.sugZchuyot] ?? "לא מוכר"})`,
+      dataValue: `${dataRow.sugZchuyot} (${SUG_ZCHUYOT[dataRow.sugZchuyot] ?? "לא מוכר"})`,
     });
   }
 
   // היקף משרה
-  if (Math.abs(pdfRow.heikef - datRow.heikef) > HEIKEF_TOLERANCE) {
+  if (Math.abs(pdfRow.heikef - dataRow.heikef) > HEIKEF_TOLERANCE) {
     diffs.push({
       fieldName: "היקף משרה",
       pdfValue: pdfRow.heikef.toFixed(3),
-      datValue: datRow.heikef.toFixed(3),
+      dataValue: dataRow.heikef.toFixed(3),
     });
   }
   return diffs;
@@ -181,13 +182,13 @@ const FUZZY_MIN_SCORE = 4;
 
 /**
  * צימוד תקופות שנשארו ללא התאמה מדויקת משני הצדדים, כשהן כמעט זהות.
- * מחזיר רשימת זוגות [pdfPeriod, datPeriod] ממוינת מהדמיון הגבוה לנמוך;
+ * מחזיר רשימת זוגות [pdfPeriod, dataPeriod] ממוינת מהדמיון הגבוה לנמוך;
  * כל תקופה משתתפת בזוג אחד לכל היותר, ונדרש לפחות תאריך אחד זהה.
  */
-function pairAlmostIdentical(pdfLeft, datLeft) {
+function pairAlmostIdentical(pdfLeft, dataLeft) {
   const candidates = [];
   for (const p of pdfLeft) {
-    for (const d of datLeft) {
+    for (const d of dataLeft) {
       if (p.start !== d.start && p.end !== d.end) continue;
       const score = similarityScore(p, d);
       if (score >= FUZZY_MIN_SCORE) candidates.push([score, p, d]);
@@ -216,10 +217,10 @@ function finalizeIdResult(res) {
 }
 
 /** השוואת כל התקופות של מספר זהות אחד. */
-export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
+export function compareId(idNumber, dataPeriods, pdfResult, pdfFile = null) {
   const res = {
     idNumber,
-    status: "match", // 'match' / 'mismatch' / 'missing_pdf' / 'missing_dat' / 'error'
+    status: "match", // 'match' / 'mismatch' / 'missing_pdf' / 'missing_data' / 'error'
     pdfFile,
     totalCompared: 0, // מספר התקופות שהושוו
     matched: 0,       // מכללן - כמה זהות לחלוטין
@@ -233,16 +234,16 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
     res.errors.push(...pdfResult.errors);
   }
 
-  datPeriods = datPeriods || [];
-  const active = datPeriods.filter((d) => !EXCLUDED_TKUFA_CODES.has(d.sugTkufa));
-  res.excluded = datPeriods
+  dataPeriods = dataPeriods || [];
+  const active = dataPeriods.filter((d) => !EXCLUDED_TKUFA_CODES.has(d.sugTkufa));
+  res.excluded = dataPeriods
     .filter((d) => EXCLUDED_TKUFA_CODES.has(d.sugTkufa))
-    .map(datRowDict);
+    .map(dataRowDict);
 
   if (pdfResult === null || pdfResult === undefined) {
     res.status = "missing_pdf";
     res.rows = active.map((d) =>
-      rowResult(ROW_DAT_ONLY, d.start, d.end, { datRow: datRowDict(d) })
+      rowResult(ROW_DATA_ONLY, d.start, d.end, { dataRow: dataRowDict(d) })
     );
     return finalizeIdResult(res);
   }
@@ -250,8 +251,8 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
     res.status = "error";
     return finalizeIdResult(res);
   }
-  if (datPeriods.length === 0) {
-    res.status = "missing_dat";
+  if (dataPeriods.length === 0) {
+    res.status = "missing_data";
     res.rows = pdfResult.periods.map((p) =>
       rowResult(ROW_PDF_ONLY, p.start, p.end, { pdfRow: pdfRowDict(p) })
     );
@@ -260,14 +261,14 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
 
   const pdfMap = new Map(pdfResult.periods.map((p) => [`${p.start}|${p.end}`, p]));
   const matchedKeys = new Set();
-  const datLeft = [];
+  const dataLeft = [];
 
   // שלב 1: התאמה מדויקת לפי (תאריך התחלה, תאריך סיום)
   for (const d of active) {
     const key = `${d.start}|${d.end}`;
     const p = pdfMap.get(key);
     if (p === undefined) {
-      datLeft.push(d);
+      dataLeft.push(d);
       continue;
     }
     matchedKeys.add(key);
@@ -279,7 +280,7 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
       rowResult(status, d.start, d.end, {
         diffs,
         pdfRow: pdfRowDict(p),
-        datRow: datRowDict(d),
+        dataRow: dataRowDict(d),
       })
     );
   }
@@ -288,22 +289,22 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
   // שלב 2: זיהוי "שורה עם שגיאה" - תקופות כמעט זהות שנשארו משני הצדדים
   // מדווחות כשורה שגויה אחת עם פירוט ההבדלים (כולל הפרשי תאריכים),
   // במקום "קיימת רק בנתונים" + "קיימת רק במסמך".
-  const pairs = pairAlmostIdentical(pdfLeft, datLeft);
+  const pairs = pairAlmostIdentical(pdfLeft, dataLeft);
   for (const [p, d] of pairs) {
     res.totalCompared += 1;
     const diffs = [];
     if (p.start !== d.start) {
-      diffs.push({ fieldName: "מתאריך", pdfValue: fmtDate(p.start), datValue: fmtDate(d.start) });
+      diffs.push({ fieldName: "מתאריך", pdfValue: fmtDate(p.start), dataValue: fmtDate(d.start) });
     }
     if (p.end !== d.end) {
-      diffs.push({ fieldName: "עד תאריך", pdfValue: fmtDate(p.end), datValue: fmtDate(d.end) });
+      diffs.push({ fieldName: "עד תאריך", pdfValue: fmtDate(p.end), dataValue: fmtDate(d.end) });
     }
     diffs.push(...compareRow(p, d, res.warnings));
     res.rows.push(
       rowResult(ROW_DIFF, d.start, d.end, {
         diffs,
         pdfRow: pdfRowDict(p),
-        datRow: datRowDict(d),
+        dataRow: dataRowDict(d),
       })
     );
   }
@@ -311,10 +312,10 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
   const pairedP = new Set(pairs.map(([p]) => p));
 
   // שלב 3: מה שבאמת נשאר בצד אחד בלבד
-  for (const d of datLeft) {
+  for (const d of dataLeft) {
     if (pairedD.has(d)) continue;
     res.totalCompared += 1;
-    res.rows.push(rowResult(ROW_DAT_ONLY, d.start, d.end, { datRow: datRowDict(d) }));
+    res.rows.push(rowResult(ROW_DATA_ONLY, d.start, d.end, { dataRow: dataRowDict(d) }));
   }
   for (const p of pdfLeft) {
     if (pairedP.has(p)) continue;
@@ -342,7 +343,7 @@ export function unifiedText(results, warnings) {
     match: "זהה במלואו",
     mismatch: "נמצאו אי-התאמות",
     missing_pdf: "קיים בנתונים בלבד (חסר PDF)",
-    missing_dat: "קיים ב-PDF בלבד (חסר בנתונים)",
+    missing_data: "קיים ב-PDF בלבד (חסר בנתונים)",
     error: "שגיאה בפענוח",
   };
   for (const r of results) {
@@ -355,9 +356,9 @@ export function unifiedText(results, warnings) {
       const period = `תקופה ${row.startDisplay} - ${row.endDisplay}`;
       if (row.status === ROW_DIFF) {
         for (const d of row.diffs) {
-          lines.push(`  - ${period}: ${d.fieldName}: ב-PDF "${d.pdfValue}" מול "${d.datValue}" בנתונים`);
+          lines.push(`  - ${period}: ${d.fieldName}: ב-PDF "${d.pdfValue}" מול "${d.dataValue}" בנתונים`);
         }
-      } else if (row.status === ROW_DAT_ONLY) {
+      } else if (row.status === ROW_DATA_ONLY) {
         lines.push(`  - ${period}: קיימת בנתונים אך לא נמצאה ב-PDF`);
       } else if (row.status === ROW_PDF_ONLY) {
         lines.push(`  - ${period}: מופיעה ב-PDF אך לא נמצאה בנתונים`);
@@ -370,15 +371,16 @@ export function unifiedText(results, warnings) {
 }
 
 /**
- * השוואה מלאה: תוצאת פענוח DAT מול רשימת [שם קובץ, תוצאת פענוח PDF].
+ * השוואה מלאה: תוצאת פענוח נתונים (DAT או טבלה) מול רשימת
+ * [שם קובץ, תוצאת פענוח PDF].
  *
  * מחזיר { results: רשימת תוצאות ממוינת, warnings: אזהרות כלליות }.
  */
-export function compareAll(datResult, pdfResults) {
+export function compareAll(dataResult, pdfResults) {
   const results = [];
-  const warnings = [...datResult.warnings];
-  if (datResult.errors.length > 0) {
-    warnings.push(...datResult.errors);
+  const warnings = [...dataResult.warnings];
+  if (dataResult.errors.length > 0) {
+    warnings.push(...dataResult.errors);
   }
 
   const pdfById = new Map();
@@ -408,14 +410,14 @@ export function compareAll(datResult, pdfResults) {
     pdfById.set(pres.idNumber, [fname, pres]);
   }
 
-  const allIds = [...new Set([...Object.keys(datResult.periodsById), ...pdfById.keys()])].sort();
+  const allIds = [...new Set([...Object.keys(dataResult.periodsById), ...pdfById.keys()])].sort();
   for (const idNumber of allIds) {
     const [fname, pres] = pdfById.get(idNumber) ?? [null, null];
-    results.push(compareId(idNumber, datResult.periodsById[idNumber], pres, fname));
+    results.push(compareId(idNumber, dataResult.periodsById[idNumber], pres, fname));
   }
 
   // קודם אי-התאמות ושגיאות, אחר כך חסרים, ובסוף התאמות מלאות
-  const order = { error: 0, mismatch: 1, missing_pdf: 2, missing_dat: 3, match: 4 };
+  const order = { error: 0, mismatch: 1, missing_pdf: 2, missing_data: 3, match: 4 };
   results.sort((a, b) => {
     const oa = order[a.status] ?? 9;
     const ob = order[b.status] ?? 9;

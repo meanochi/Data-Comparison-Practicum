@@ -122,7 +122,7 @@ describe("השוואה מלאה מנתוני הטבלה הזמנית", () => {
     assert.equal(byId.get("12345678").status, "match");
     assert.equal(byId.get("23456789").status, "mismatch");
     assert.equal(byId.get("34567890").status, "missing_pdf");
-    assert.equal(byId.get("45678901").status, "missing_dat");
+    assert.equal(byId.get("45678901").status, "missing_data");
   });
 });
 
@@ -172,7 +172,7 @@ describe("POST /api/compare", () => {
     [status, body] = await post({ rows: [], pdf: pdfOf("45678901") }, { full: true });
     assert.equal(status, 200);
     assert.equal(body.valid, 0);
-    assert.equal(body.results[0].status, "missing_dat");
+    assert.equal(body.results[0].status, "missing_data");
   });
 
   it("התשובה כברירת מחדל רזה: valid, idNumber, rows, text בלבד", async () => {

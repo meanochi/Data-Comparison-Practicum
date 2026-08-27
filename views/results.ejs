@@ -3,8 +3,8 @@
   function statusBadge(status) {
     if (status === 'match') return '<span class="badge ok">✔ זהה במלואו</span>';
     if (status === 'mismatch') return '<span class="badge bad">✖ נמצאו אי-התאמות</span>';
-    if (status === 'missing_pdf') return '<span class="badge warn">קיים ב-DAT בלבד (חסר PDF)</span>';
-    if (status === 'missing_dat') return '<span class="badge warn">קיים ב-PDF בלבד (חסר ב-DAT)</span>';
+    if (status === 'missing_pdf') return '<span class="badge warn">קיים בנתונים בלבד (חסר PDF)</span>';
+    if (status === 'missing_data') return '<span class="badge warn">קיים ב-PDF בלבד (חסר בנתונים)</span>';
     return '<span class="badge bad">שגיאה בפענוח</span>';
   }
 %>
@@ -44,29 +44,29 @@
           <th>פירוט אי-התאמה</th>
         </tr>
         <% for (const row of r.rows) { %>
-        <% const src = row.pdfRow; const dat = row.datRow; %>
-        <tr class="<%= row.status === 'diff' ? 'row-diff' : (row.status === 'dat_only' || row.status === 'pdf_only') ? 'row-side' : '' %>">
+        <% const src = row.pdfRow; const dataRow = row.dataRow; %>
+        <tr class="<%= row.status === 'diff' ? 'row-diff' : (row.status === 'data_only' || row.status === 'pdf_only') ? 'row-side' : '' %>">
           <td><%= row.startDisplay %></td>
           <td><%= row.endDisplay %></td>
           <td>
             <% if (row.status === 'match') { %><span class="badge ok">זהה</span>
             <% } else if (row.status === 'diff') { %><span class="badge bad">שונה</span>
-            <% } else if (row.status === 'dat_only') { %><span class="badge warn">רק ב-DAT</span>
+            <% } else if (row.status === 'data_only') { %><span class="badge warn">רק בנתונים</span>
             <% } else { %><span class="badge warn">רק ב-PDF</span><% } %>
           </td>
-          <td><%= (src && src.tkufaLabel) || (dat && dat.sugTkufaTeur) || '' %></td>
-          <td><%= (src || dat) ? fmtG(src ? src.months : dat.months) : '' %></td>
-          <td><%= (src && src.zchuyotLabel) || (dat && dat.sugZchuyotTeur) || '' %></td>
-          <td><%= (src || dat) ? fmtF3(src ? src.heikef : dat.heikef) : '' %></td>
+          <td><%= (src && src.tkufaLabel) || (dataRow && dataRow.sugTkufaTeur) || '' %></td>
+          <td><%= (src || dataRow) ? fmtG(src ? src.months : dataRow.months) : '' %></td>
+          <td><%= (src && src.zchuyotLabel) || (dataRow && dataRow.sugZchuyotTeur) || '' %></td>
+          <td><%= (src || dataRow) ? fmtF3(src ? src.heikef : dataRow.heikef) : '' %></td>
           <td class="diff-vals">
             <% if (row.status === 'diff') { %>
               <% for (const d of row.diffs) { %>
-                <div><b><%= d.fieldName %></b>: ב-PDF: <%= d.pdfValue %> | ב-DAT: <%= d.datValue %></div>
+                <div><b><%= d.fieldName %></b>: ב-PDF: <%= d.pdfValue %> | בנתונים: <%= d.dataValue %></div>
               <% } %>
-            <% } else if (row.status === 'dat_only') { %>
-              התקופה קיימת בקובץ ה-DAT אך לא נמצאה בטבלת ה-PDF
+            <% } else if (row.status === 'data_only') { %>
+              התקופה קיימת בנתונים אך לא נמצאה ב-PDF
             <% } else if (row.status === 'pdf_only') { %>
-              התקופה מופיעה ב-PDF אך לא נמצאה בקובץ ה-DAT
+              התקופה מופיעה ב-PDF אך לא נמצאה בנתונים
             <% } %>
           </td>
         </tr>

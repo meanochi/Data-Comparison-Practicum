@@ -49,7 +49,7 @@ function annotateSentRows(rawRows, results) {
   const excludedKeys = new Set();
   for (const r of results) {
     for (const row of r.rows) {
-      if (row.datRow) rowIndex.set(`${r.idNumber}|${row.datRow.start}|${row.datRow.end}`, row);
+      if (row.dataRow) rowIndex.set(`${r.idNumber}|${row.dataRow.start}|${row.dataRow.end}`, row);
     }
     for (const ex of r.excluded) excludedKeys.add(`${r.idNumber}|${ex.start}|${ex.end}`);
   }
@@ -71,7 +71,7 @@ function annotateSentRows(rawRows, results) {
           ...raw,
           valid: 0,
           reason: resultRow.diffs
-            .map((d) => `${d.fieldName}: במסמך "${d.pdfValue}" מול "${d.datValue}" בנתונים`)
+            .map((d) => `${d.fieldName}: במסמך "${d.pdfValue}" מול "${d.dataValue}" בנתונים`)
             .join("; "),
         };
       }
@@ -89,7 +89,7 @@ function buildSummary(results) {
     total: results.length,
     match: results.filter((r) => r.status === "match").length,
     mismatch: results.filter((r) => r.status === "mismatch").length,
-    missing: results.filter((r) => r.status === "missing_pdf" || r.status === "missing_dat").length,
+    missing: results.filter((r) => r.status === "missing_pdf" || r.status === "missing_data").length,
     error: results.filter((r) => r.status === "error").length,
   };
 }
@@ -167,7 +167,7 @@ app.post(
     }
 
     // מיון כמו קודם: שגיאות ואי-התאמות תחילה, התאמות מלאות בסוף
-    const order = { error: 0, mismatch: 1, missing_pdf: 2, missing_dat: 3, match: 4 };
+    const order = { error: 0, mismatch: 1, missing_pdf: 2, missing_data: 3, match: 4 };
     results.sort((a, b) => {
       const d = (order[a.status] ?? 9) - (order[b.status] ?? 9);
       return d !== 0 ? d : a.idNumber < b.idNumber ? -1 : a.idNumber > b.idNumber ? 1 : 0;
@@ -225,10 +225,10 @@ app.post("/api/compare", express.json({ limit: "200mb" }), upload.single("pdf"),
   }
   console.log(`[${stamp}] /api/compare מ-${req.ip}: התקבלו ${rows.length} שורות טבלה ומסמך "${pdf.filename ?? "?"}"`);
 
-  const datResult = parseTableRows(rows);
+  const tableResult = parseTableRows(rows);
 
   // אכיפת מצב אחד-על-אחד: כל קריאה נושאת ת"ז אחת בלבד
-  const idsInRows = Object.keys(datResult.periodsById);
+  const idsInRows = Object.keys(tableResult.periodsById);
   if (idsInRows.length > 1) {
     console.log(`    בקשה נדחתה - ${idsInRows.length} מספרי זהות בקריאה אחת (${idsInRows.join(", ")})`);
     return res.status(400).json({
@@ -265,9 +265,9 @@ app.post("/api/compare", express.json({ limit: "200mb" }), upload.single("pdf"),
   // השוואה אחד-על-אחד: ת"ז אחת (מה-rows, ואם אין - מה-PDF) מול המסמך היחיד
   const compareIdNumber = idsInRows[0] ?? pdfResult.idNumber ?? "?";
   const results = [
-    compareId(compareIdNumber, datResult.periodsById[compareIdNumber], pdfResult, pdf.filename),
+    compareId(compareIdNumber, tableResult.periodsById[compareIdNumber], pdfResult, pdf.filename),
   ];
-  const warnings = [...datResult.warnings, ...datResult.errors];
+  const warnings = [...tableResult.warnings, ...tableResult.errors];
   const summary = buildSummary(results);
   // אינדיקציית תקינות לפי האפיון: 1 רק כשכל ההשוואות תקינות במלואן
   const valid = summary.total > 0 && summary.match === summary.total ? 1 : 0;

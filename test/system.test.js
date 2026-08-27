@@ -7,7 +7,7 @@ import { before, describe, it } from "node:test";
 import iconv from "iconv-lite";
 
 import {
-  ROW_DAT_ONLY,
+  ROW_DATA_ONLY,
   ROW_DIFF,
   ROW_MATCH,
   ROW_PDF_ONLY,
@@ -131,14 +131,14 @@ describe("השוואה מלאה על קבצי הדוגמה", () => {
     diff = rows.get("01092012|31082013");
     assert.deepEqual(diff.diffs.map((d) => d.fieldName), ["אורך שירות (חודשים)"]);
 
-    assert.equal(rows.get("01092013|31082014").status, ROW_DAT_ONLY);
+    assert.equal(rows.get("01092013|31082014").status, ROW_DATA_ONLY);
     assert.equal(rows.get("01091998|31082000").status, ROW_PDF_ONLY);
     assert.equal(rows.get("01092000|31082005").status, ROW_MATCH);
   });
 
   it("צדדים חסרים", () => {
     assert.equal(res.get("34567890").status, "missing_pdf");
-    assert.equal(res.get("45678901").status, "missing_dat");
+    assert.equal(res.get("45678901").status, "missing_data");
   });
 
   it("כלל השבתון", () => {
@@ -188,7 +188,7 @@ describe("זיהוי שורה עם שגיאה", () => {
       pdfResult({ ...pdfPeriod, start: "01091990", end: "31081995" }));
     assert.equal(r.totalCompared, 2);
     const statuses = r.rows.map((row) => row.status).sort();
-    assert.deepEqual(statuses, [ROW_DAT_ONLY, ROW_PDF_ONLY]);
+    assert.deepEqual(statuses, [ROW_DATA_ONLY, ROW_PDF_ONLY]);
   });
 
   it("תאריך אחד זהה אבל כל השאר שונה - לא מצומד", () => {
@@ -198,6 +198,6 @@ describe("זיהוי שורה עם שגיאה", () => {
     }));
     assert.equal(r.totalCompared, 2);
     const statuses = r.rows.map((row) => row.status).sort();
-    assert.deepEqual(statuses, [ROW_DAT_ONLY, ROW_PDF_ONLY]);
+    assert.deepEqual(statuses, [ROW_DATA_ONLY, ROW_PDF_ONLY]);
   });
 });
