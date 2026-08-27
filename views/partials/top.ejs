@@ -43,6 +43,7 @@
     .badge.bad { background: var(--bad-bg); color: var(--bad-text); border-color: var(--bad-border); }
     .badge.warn { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn-border); }
     .badge.info { background: var(--info-bg); color: var(--info-text); border-color: var(--info-border); }
+    .alert.info { background: var(--info-bg); color: var(--info-text); border-color: var(--info-border); }
     .muted { color: var(--muted); font-size: .9rem; }
     details.id-block { margin-top: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
     details.id-block > summary {
@@ -69,3 +70,13 @@
     </div>
   </header>
   <div class="container">
+    <div class="alert info">
+      <b>מסך זה הוא כלי בדיקה מקומי בלבד</b> — לצורך פיתוח ובדיקות עד שההתממשקות
+      תחובר בפועל. הוא מדמה מקומית את מה שקורה בייצור: המרת קובץ DAT לשורות
+      טבלה זמנית ושליחתן ל-API, בדיוק כפי שהעלאה זו עושה מאחורי הקלעים.
+      <b>בייצור אין כאן קובץ DAT ואין העלאה ידנית</b>: המערכת הקיימת (.NET
+      ואורקל, משרד האוצר) קוראת ישירות ל-<code>POST /api/compare</code> עם
+      שורות טבלת <code>LD_CHINUCH_9050_TKUFOT_RETSIF</code> של תעודת זהות
+      אחת וקובץ ה-PDF התואם לה — זהו הממשק המרכזי של המערכת (תיעוד מלא:
+      <a href="/api-docs">/api-docs</a>).
+    </div>
