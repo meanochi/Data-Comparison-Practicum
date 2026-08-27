@@ -12,6 +12,7 @@ import {
   ROW_MATCH,
   ROW_PDF_ONLY,
   compareAll,
+  compareId,
 } from "../src/comparator.js";
 import { parseDatBytes, parseDatFile } from "../src/parsers/datParser.js";
 import { parsePdfFile, toLogical, toVisual } from "../src/parsers/pdfChinuchParser.js";
@@ -144,5 +145,59 @@ describe("השוואה מלאה על קבצי הדוגמה", () => {
     const r = res.get("12345678");
     const sab = r.rows.find((row) => row.start === "01092016");
     assert.equal(sab.status, ROW_MATCH);
+  });
+});
+
+// ---------- זיהוי "שורה עם שגיאה" (תקופות כמעט זהות) ----------
+
+describe("זיהוי שורה עם שגיאה", () => {
+  const datPeriod = {
+    idNumber: "1", sugTkufa: 9999, start: "01092010", end: "31082015",
+    months: 60, sugZchuyot: 2, heikef: 1, lineNumber: 1,
+  };
+  const pdfResult = (period) => ({
+    idNumber: "1", periods: [period], warnings: [], errors: [],
+  });
+  const pdfPeriod = {
+    tkufaLabel: "קביעות", start: "01092010", end: "31082015",
+    months: 60, zchuyotLabel: "מוקפא", heikef: 1, mekadem: 0,
+  };
+
+  it("תאריך סיום שונה - שורה שגויה אחת, לא שתי שורות חד-צדדיות", () => {
+    const r = compareId("1", [datPeriod], pdfResult({ ...pdfPeriod, end: "30082015" }));
+    assert.equal(r.totalCompared, 1);
+    assert.equal(r.rows.length, 1);
+    assert.equal(r.rows[0].status, ROW_DIFF);
+    assert.deepEqual(r.rows[0].diffs.map((d) => d.fieldName), ["עד תאריך"]);
+    assert.equal(r.status, "mismatch");
+  });
+
+  it("תאריך התחלה שונה + היקף שונה - שורה שגויה עם שני פערים", () => {
+    const r = compareId("1", [datPeriod],
+      pdfResult({ ...pdfPeriod, start: "01102010", heikef: 0.5 }));
+    assert.equal(r.rows.length, 1);
+    assert.equal(r.rows[0].status, ROW_DIFF);
+    assert.deepEqual(
+      r.rows[0].diffs.map((d) => d.fieldName),
+      ["מתאריך", "היקף משרה"]
+    );
+  });
+
+  it("תקופות שונות באמת (אף תאריך זהה) נשארות חד-צדדיות", () => {
+    const r = compareId("1", [datPeriod],
+      pdfResult({ ...pdfPeriod, start: "01091990", end: "31081995" }));
+    assert.equal(r.totalCompared, 2);
+    const statuses = r.rows.map((row) => row.status).sort();
+    assert.deepEqual(statuses, [ROW_DAT_ONLY, ROW_PDF_ONLY]);
+  });
+
+  it("תאריך אחד זהה אבל כל השאר שונה - לא מצומד", () => {
+    const r = compareId("1", [datPeriod], pdfResult({
+      ...pdfPeriod, end: "31121212", months: 3, heikef: 0.1,
+      tkufaLabel: 'חל"ת', zchuyotLabel: "נרכש",
+    }));
+    assert.equal(r.totalCompared, 2);
+    const statuses = r.rows.map((row) => row.status).sort();
+    assert.deepEqual(statuses, [ROW_DAT_ONLY, ROW_PDF_ONLY]);
   });
 });

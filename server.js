@@ -4,16 +4,17 @@
  *
  * הרצה:  npm start  (או node server.js)  ואז לפתוח בדפדפן  http://localhost:5000
  */
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import express from "express";
 import multer from "multer";
+import swaggerUi from "swagger-ui-express";
 
-
-import { compareAll, unifiedText } from "./src/comparator.js";
+import { compareId, unifiedText } from "./src/comparator.js";
 import { normalizeId } from "./src/parsers/datParser.js";
-import { parseTableRows, tableRowsFromDatBytes } from "./src/tableSource.js";
+import { normalizeKeys, parseTableRows, tableRowsFromDatBytes } from "./src/tableSource.js";
 import { parsePdfBuffer } from "./src/parsers/pdfChinuchParser.js";
 import { fmtG } from "./src/comparator.js";
 
@@ -34,6 +35,51 @@ const helpers = {
   fmtF3: (n) => Number(n).toFixed(3),
 };
 
+/**
+ * החזרת השורות שנשלחו כפי שהן, עם תוספת לכל שורה:
+ *   valid  - 1 אם השורה נמצאה תואמת במלואה במסמך, 0 אחרת
+ *   reason - פירוט קצר כשהשורה אינה תקינה (או הערה כשאינה מושווית)
+ */
+function annotateSentRows(rawRows, results) {
+  const rowIndex = new Map();
+  const excludedKeys = new Set();
+  for (const r of results) {
+    for (const row of r.rows) {
+      if (row.datRow) rowIndex.set(`${r.idNumber}|${row.datRow.start}|${row.datRow.end}`, row);
+    }
+    for (const ex of r.excluded) excludedKeys.add(`${r.idNumber}|${ex.start}|${ex.end}`);
+  }
+
+  return rawRows.map((raw) => {
+    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+      return { row: raw, valid: 0, reason: "רשומה שאינה אובייקט - לא נבדקה" };
+    }
+    const row = normalizeKeys(raw);
+    const key =
+      `${normalizeId(String(row.MISPAR_ZEHUT ?? ""))}|` +
+      `${String(row.TAARICH_ME ?? "")}|${String(row.TAARICH_AD ?? "")}`;
+
+    const resultRow = rowIndex.get(key);
+    if (resultRow) {
+      if (resultRow.status === "match") return { ...raw, valid: 1 };
+      if (resultRow.status === "diff") {
+        return {
+          ...raw,
+          valid: 0,
+          reason: resultRow.diffs
+            .map((d) => `${d.fieldName}: במסמך "${d.pdfValue}" מול "${d.datValue}" בנתונים`)
+            .join("; "),
+        };
+      }
+      return { ...raw, valid: 0, reason: "לא נמצאה תקופה תואמת במסמך" };
+    }
+    if (excludedKeys.has(key)) {
+      return { ...raw, valid: 1, reason: "עזיבה - אינה מודפסת במסמך ולא נכללת בהשוואה" };
+    }
+    return { ...raw, valid: 0, reason: "השורה לא נקלטה (ערך שגוי או רשומה שאינה 9050)" };
+  });
+}
+
 function buildSummary(results) {
   return {
     total: results.length,
@@ -43,6 +89,10 @@ function buildSummary(results) {
     error: results.filter((r) => r.status === "error").length,
   };
 }
+
+// תיעוד אינטראקטיבי של ה-API: http://localhost:5000/api-docs
+const openapiSpec = JSON.parse(readFileSync(path.join(__dirname, "openapi.json"), "utf8"));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 app.get("/", (req, res) => {
   res.render("index", { error: null });
@@ -87,7 +137,7 @@ app.post(
         warnings.push(`ת"ז ${idNumber}: הועלה יותר ממסמך אחד - נלקח הראשון`);
         continue;
       }
-      const resp = await fetch(apiUrl, {
+      const resp = await fetch(`${apiUrl}?full=1`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -132,19 +182,35 @@ app.post(
 /**
  * API עבור המערכת הקיימת: השוואה מול נתוני הטבלה הזמנית במקום קובץ DAT.
  *
- * הממשק עובד אחד-על-אחד - כל קריאה נושאת ת"ז אחת ומסמך אחד:
- *   {
- *     "rows": [ { "MISPAR_TNUA": "9050", "MISPAR_ZEHUT": "...", ... }, ... ],
- *     "pdf":  { "filename": "a.pdf", "content": "<base64>" }
- *   }
+ * הממשק עובד אחד-על-אחד - כל קריאה נושאת ת"ז אחת ומסמך אחד.
+ * שתי צורות קלט לאותו חוזה:
+ *   JSON:      { "rows": [ {...} ], "pdf": { "filename", "content": <base64> } }
+ *   form-data: שדה rows (טקסט, מערך JSON) + שדה pdf (קובץ ממש) - נוח מפוסטמן
  * rows - שורות LD_CHINUCH_9050_TKUFOT_RETSIF של אותה ת"ז; שמות העמודות
  * כמפתחות. בקשה עם יותר מת"ז אחת ב-rows נדחית עם 400.
- * התשובה: { valid, text, idNumber, summary, warnings, results }.
+ * התשובה: אותן שורות שנשלחו בתוספת valid (1/0) לכל שורה, לצד valid כולל
+ * וטקסט מאוחד: { valid, idNumber, rows, text }; עם ?full=1 נוספים גם
+ * summary/warnings/results (למסך התוצאות).
  */
-app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
+app.post("/api/compare", express.json({ limit: "200mb" }), upload.single("pdf"), async (req, res) => {
   const startedAt = Date.now();
   const stamp = new Date().toISOString();
-  const { rows, pdf } = req.body ?? {};
+  let { rows, pdf } = req.body ?? {};
+  // form-data (למשל מפוסטמן): ה-PDF מצורף כקובץ ממש ו-rows כשדה טקסט JSON
+  if (req.file) {
+    pdf = {
+      filename: Buffer.from(req.file.originalname, "latin1").toString("utf8"),
+      content: req.file.buffer.toString("base64"),
+    };
+    if (rows != null) {
+      try {
+        rows = JSON.parse(rows);
+      } catch {
+        console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - rows אינו JSON תקין`);
+        return res.status(400).json({ error: "שדה rows חייב להכיל מערך JSON תקין (כשדה טקסט לצד קובץ ה-pdf)" });
+      }
+    }
+  }
   if (!Array.isArray(rows)) {
     console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר rows`);
     return res.status(400).json({ error: "נדרש שדה rows: מערך שורות מהטבלה הזמנית" });
@@ -153,7 +219,6 @@ app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
     console.log(`[${stamp}] /api/compare מ-${req.ip}: בקשה נדחתה - חסר pdf`);
     return res.status(400).json({ error: "נדרש שדה pdf: { filename, content (base64) } - מסמך אחד לקריאה" });
   }
-  const pdfs = [pdf];
   console.log(`[${stamp}] /api/compare מ-${req.ip}: התקבלו ${rows.length} שורות טבלה ומסמך "${pdf.filename ?? "?"}"`);
 
   const datResult = parseTableRows(rows);
@@ -177,26 +242,28 @@ app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
     console.log(`    גוף הבקשה נשמר: ${dumpPath}`);
   }
 
-  const pdfResults = [];
-  for (let i = 0; i < pdfs.length; i++) {
-    const { filename = `pdf-${i + 1}`, content } = pdfs[i] ?? {};
-    try {
-      if (typeof content !== "string" || content === "") {
-        throw new Error("שדה content חסר או ריק");
-      }
-      pdfResults.push([filename, await parsePdfBuffer(Buffer.from(content, "base64"))]);
-    } catch (exc) {
-      // קובץ פגום לא מפיל את כל הבקשה - מדווח כתוצאת שגיאה עבור הקובץ הזה
-      pdfResults.push([filename, {
-        idNumber: null,
-        periods: [],
-        warnings: [],
-        errors: [`שגיאה בפענוח ${filename}: ${exc.message}`],
-      }]);
+  // פענוח מסמך ה-PDF היחיד; קובץ פגום לא מפיל את הבקשה - מדווח כשגיאת השוואה
+  let pdfResult;
+  try {
+    if (typeof pdf.content !== "string" || pdf.content === "") {
+      throw new Error("שדה content חסר או ריק");
     }
+    pdfResult = await parsePdfBuffer(Buffer.from(pdf.content, "base64"));
+  } catch (exc) {
+    pdfResult = {
+      idNumber: null,
+      periods: [],
+      warnings: [],
+      errors: [`שגיאה בפענוח ${pdf.filename ?? "?"}: ${exc.message}`],
+    };
   }
 
-  const { results, warnings } = compareAll(datResult, pdfResults);
+  // השוואה אחד-על-אחד: ת"ז אחת (מה-rows, ואם אין - מה-PDF) מול המסמך היחיד
+  const compareIdNumber = idsInRows[0] ?? pdfResult.idNumber ?? "?";
+  const results = [
+    compareId(compareIdNumber, datResult.periodsById[compareIdNumber], pdfResult, pdf.filename),
+  ];
+  const warnings = [...datResult.warnings, ...datResult.errors];
   const summary = buildSummary(results);
   // אינדיקציית תקינות לפי האפיון: 1 רק כשכל ההשוואות תקינות במלואן
   const valid = summary.total > 0 && summary.match === summary.total ? 1 : 0;
@@ -204,14 +271,19 @@ app.post("/api/compare", express.json({ limit: "200mb" }), async (req, res) => {
     `    הושוו ${summary.total} ת"ז (תואמות: ${summary.match}, שונות: ${summary.mismatch}, ` +
     `חסרות: ${summary.missing}, שגיאות: ${summary.error}) => valid=${valid}, ${Date.now() - startedAt}ms`
   );
-  res.json({
+  // התשובה: אותו JSON שנשלח - השורות על כל פרטיהן, בתוספת valid לכל שורה.
+  // הפירוט המלא (summary/warnings/results) מוחזר רק למי שמבקש ?full=1
+  // (מסך התוצאות משתמש בזה).
+  const response = {
     valid,
     idNumber: idsInRows.length === 1 ? idsInRows[0] : null,
+    rows: annotateSentRows(rows, results),
     text: unifiedText(results, warnings),
-    summary,
-    warnings,
-    results,
-  });
+  };
+  if (req.query.full === "1") {
+    Object.assign(response, { summary, warnings, results });
+  }
+  res.json(response);
 });
 
 const PORT = process.env.PORT || 5000;

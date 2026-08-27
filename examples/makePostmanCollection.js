@@ -82,7 +82,7 @@ const collection = {
       [ok, json,
         'pm.test("valid=1", () => pm.expect(body.valid).to.eql(1));',
         'pm.test("idNumber נכון", () => pm.expect(body.idNumber).to.eql("12345678"));',
-        'pm.test("ההתאמה מלאה", () => pm.expect(body.summary.match).to.eql(body.summary.total));',
+        'pm.test("השורות חוזרות עם valid", () => pm.expect(body.rows.every(r => r.valid === 1)).to.be.true);',
         'pm.test("יש טקסט מאוחד", () => pm.expect(body.text).to.include("זהה במלואו"));'],
     ),
     request(
@@ -90,7 +90,7 @@ const collection = {
       { rows: rowsOf("023456789"), pdf: pdfOf("23456789") },
       [ok, json,
         'pm.test("valid=0", () => pm.expect(body.valid).to.eql(0));',
-        'pm.test("יש אי-התאמות", () => pm.expect(body.summary.mismatch).to.be.above(0));',
+        'pm.test("יש שורות שחוזרות עם valid=0 ו-reason", () => pm.expect(body.rows.some(r => r.valid === 0 && r.reason)).to.be.true);',
         'pm.test("הטקסט מפרט פערים", () => pm.expect(body.text).to.include("מול"));'],
     ),
     request(
@@ -98,7 +98,7 @@ const collection = {
       { rows: rowsOf("012345678"), pdf: pdfOf("23456789") },
       [ok, json,
         'pm.test("valid=0", () => pm.expect(body.valid).to.eql(0));',
-        'pm.test("שני צדדים חסרים", () => pm.expect(body.summary.missing).to.eql(2));'],
+        'pm.test("כל השורות בלי התאמה במסמך", () => pm.expect(body.rows.every(r => r.valid === 0)).to.be.true);'],
     ),
     request(
       "4. מקרה קצה: חסר rows - נדחה עם 400",
@@ -122,14 +122,14 @@ const collection = {
       },
       [ok, json,
         'pm.test("valid=0", () => pm.expect(body.valid).to.eql(0));',
-        'pm.test("שגיאה אחת", () => pm.expect(body.summary.error).to.eql(1));'],
+        'pm.test("שגיאת פענוח בטקסט", () => pm.expect(body.text).to.include("שגיאה"));'],
     ),
     request(
       "7. מקרה קצה: rows ריק - מדווח כחסר בנתונים",
       { rows: [], pdf: pdfOf("12345678") },
       [ok, json,
         'pm.test("valid=0", () => pm.expect(body.valid).to.eql(0));',
-        'pm.test("חסר בנתונים", () => pm.expect(body.results[0].status).to.eql("missing_dat"));'],
+        'pm.test("חסר בנתונים", () => pm.expect(body.text).to.include("קיים ב-PDF בלבד"));'],
     ),
     request(
       '8. מקרה קצה: יותר מת"ז אחת בקריאה - נדחה עם 400',
@@ -148,8 +148,37 @@ const collection = {
         pdf: pdfOf("12345678"),
       },
       [ok, json,
-        'pm.test("השורה הפגומה דווחה", () => pm.expect(JSON.stringify(body.warnings)).to.include("99"));'],
+        'pm.test("השורה הפגומה דווחה", () => pm.expect(body.text).to.include("99"));',
+        'pm.test("השורה הפגומה חוזרת עם valid=0", () => pm.expect(body.rows.find(r => r.SEQ === 99).valid).to.eql(0));'],
     ),
+    {
+      name: "10. צירוף ה-PDF כקובץ ממש (form-data) - יש לבחור קובץ ידנית",
+      event: [{
+        listen: "test",
+        script: {
+          type: "text/javascript",
+          exec: [ok, json, 'pm.test("valid=1", () => pm.expect(body.valid).to.eql(1));'],
+        },
+      }],
+      request: {
+        method: "POST",
+        description:
+          "אותו חוזה, בצורת form-data: שדה rows הוא טקסט (מערך JSON, כבר ממולא), " +
+          "ושדה pdf הוא קובץ - יש ללחוץ Select Files ולבחור את samples/sample_12345678.pdf.",
+        url: {
+          raw: "{{baseUrl}}/api/compare",
+          host: ["{{baseUrl}}"],
+          path: ["api", "compare"],
+        },
+        body: {
+          mode: "formdata",
+          formdata: [
+            { key: "rows", type: "text", value: JSON.stringify(rowsOf("012345678")) },
+            { key: "pdf", type: "file", src: [] },
+          ],
+        },
+      },
+    },
   ],
 };
 

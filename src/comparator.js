@@ -148,6 +148,64 @@ function compareRow(pdfRow, datRow, warnings) {
   return diffs;
 }
 
+/** תאימות סוג תקופה בין תווית ה-PDF לקוד בנתונים (כולל כלל השבתון). */
+function tkufaCompatible(p, d) {
+  if (p.tkufaLabel === SABBATICAL_LABEL) {
+    return d.sugTkufa === SABBATICAL_TKUFA_CODE && d.sugZchuyot === SABBATICAL_ZCHUYOT_CODE;
+  }
+  return PDF_TKUFA_LABELS[p.tkufaLabel]?.has(d.sugTkufa) ?? false;
+}
+
+/** תאימות סוג זכויות בין תווית ה-PDF לקוד בנתונים. */
+function zchuyotCompatible(p, d) {
+  return PDF_ZCHUYOT_LABELS[p.zchuyotLabel]?.has(d.sugZchuyot) ?? false;
+}
+
+/**
+ * ניקוד דמיון בין תקופת PDF לתקופת נתונים, לזיהוי "שורה עם שגיאה":
+ * תאריכים שווים שוקלים 2 כל אחד, שאר השדות 1 כל אחד (מקסימום 8).
+ */
+function similarityScore(p, d) {
+  let score = 0;
+  if (p.start === d.start) score += 2;
+  if (p.end === d.end) score += 2;
+  if (Math.abs(p.months - d.months) <= MONTHS_TOLERANCE) score += 1;
+  if (Math.abs(p.heikef - d.heikef) <= HEIKEF_TOLERANCE) score += 1;
+  if (tkufaCompatible(p, d)) score += 1;
+  if (zchuyotCompatible(p, d)) score += 1;
+  return score;
+}
+
+// סף לצימוד תקופות "כמעט זהות": לפחות תאריך אחד זהה + עוד שני שדות תואמים
+const FUZZY_MIN_SCORE = 4;
+
+/**
+ * צימוד תקופות שנשארו ללא התאמה מדויקת משני הצדדים, כשהן כמעט זהות.
+ * מחזיר רשימת זוגות [pdfPeriod, datPeriod] ממוינת מהדמיון הגבוה לנמוך;
+ * כל תקופה משתתפת בזוג אחד לכל היותר, ונדרש לפחות תאריך אחד זהה.
+ */
+function pairAlmostIdentical(pdfLeft, datLeft) {
+  const candidates = [];
+  for (const p of pdfLeft) {
+    for (const d of datLeft) {
+      if (p.start !== d.start && p.end !== d.end) continue;
+      const score = similarityScore(p, d);
+      if (score >= FUZZY_MIN_SCORE) candidates.push([score, p, d]);
+    }
+  }
+  candidates.sort((a, b) => b[0] - a[0]);
+  const usedP = new Set();
+  const usedD = new Set();
+  const pairs = [];
+  for (const [, p, d] of candidates) {
+    if (usedP.has(p) || usedD.has(d)) continue;
+    usedP.add(p);
+    usedD.add(d);
+    pairs.push([p, d]);
+  }
+  return pairs;
+}
+
 function finalizeIdResult(res) {
   res.percent =
     res.totalCompared === 0
@@ -188,6 +246,10 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
     );
     return finalizeIdResult(res);
   }
+  if (pdfResult.errors.length > 0) {
+    res.status = "error";
+    return finalizeIdResult(res);
+  }
   if (datPeriods.length === 0) {
     res.status = "missing_dat";
     res.rows = pdfResult.periods.map((p) =>
@@ -195,23 +257,21 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
     );
     return finalizeIdResult(res);
   }
-  if (pdfResult.errors.length > 0) {
-    res.status = "error";
-    return finalizeIdResult(res);
-  }
 
   const pdfMap = new Map(pdfResult.periods.map((p) => [`${p.start}|${p.end}`, p]));
   const matchedKeys = new Set();
+  const datLeft = [];
 
+  // שלב 1: התאמה מדויקת לפי (תאריך התחלה, תאריך סיום)
   for (const d of active) {
     const key = `${d.start}|${d.end}`;
     const p = pdfMap.get(key);
-    res.totalCompared += 1;
     if (p === undefined) {
-      res.rows.push(rowResult(ROW_DAT_ONLY, d.start, d.end, { datRow: datRowDict(d) }));
+      datLeft.push(d);
       continue;
     }
     matchedKeys.add(key);
+    res.totalCompared += 1;
     const diffs = compareRow(p, d, res.warnings);
     const status = diffs.length === 0 ? ROW_MATCH : ROW_DIFF;
     if (diffs.length === 0) res.matched += 1;
@@ -223,12 +283,43 @@ export function compareId(idNumber, datPeriods, pdfResult, pdfFile = null) {
       })
     );
   }
+  let pdfLeft = pdfResult.periods.filter((p) => !matchedKeys.has(`${p.start}|${p.end}`));
 
-  for (const p of pdfResult.periods) {
-    if (!matchedKeys.has(`${p.start}|${p.end}`)) {
-      res.totalCompared += 1;
-      res.rows.push(rowResult(ROW_PDF_ONLY, p.start, p.end, { pdfRow: pdfRowDict(p) }));
+  // שלב 2: זיהוי "שורה עם שגיאה" - תקופות כמעט זהות שנשארו משני הצדדים
+  // מדווחות כשורה שגויה אחת עם פירוט ההבדלים (כולל הפרשי תאריכים),
+  // במקום "קיימת רק בנתונים" + "קיימת רק במסמך".
+  const pairs = pairAlmostIdentical(pdfLeft, datLeft);
+  for (const [p, d] of pairs) {
+    res.totalCompared += 1;
+    const diffs = [];
+    if (p.start !== d.start) {
+      diffs.push({ fieldName: "מתאריך", pdfValue: fmtDate(p.start), datValue: fmtDate(d.start) });
     }
+    if (p.end !== d.end) {
+      diffs.push({ fieldName: "עד תאריך", pdfValue: fmtDate(p.end), datValue: fmtDate(d.end) });
+    }
+    diffs.push(...compareRow(p, d, res.warnings));
+    res.rows.push(
+      rowResult(ROW_DIFF, d.start, d.end, {
+        diffs,
+        pdfRow: pdfRowDict(p),
+        datRow: datRowDict(d),
+      })
+    );
+  }
+  const pairedD = new Set(pairs.map(([, d]) => d));
+  const pairedP = new Set(pairs.map(([p]) => p));
+
+  // שלב 3: מה שבאמת נשאר בצד אחד בלבד
+  for (const d of datLeft) {
+    if (pairedD.has(d)) continue;
+    res.totalCompared += 1;
+    res.rows.push(rowResult(ROW_DAT_ONLY, d.start, d.end, { datRow: datRowDict(d) }));
+  }
+  for (const p of pdfLeft) {
+    if (pairedP.has(p)) continue;
+    res.totalCompared += 1;
+    res.rows.push(rowResult(ROW_PDF_ONLY, p.start, p.end, { pdfRow: pdfRowDict(p) }));
   }
 
   // מיון לפי תאריך התחלה (YYYYMMDD) מהחדש לישן, כמו בדו"ח
