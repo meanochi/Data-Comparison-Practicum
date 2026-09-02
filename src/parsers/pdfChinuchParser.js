@@ -17,8 +17,11 @@ function escapeRegExp(s) {
 
 // שורת טבלה בטקסט המחולץ (משמאל לימין):
 // מקדם | היקף משרה | סוג זכויות | אורך שירות | תאריך עד | מתאריך | סוג תקופה
+// עמודת "מקדם" יכולה להכיל גם ערך לא-מספרי (למשל "V" כדגל סטטוס) - היא
+// לא משמשת בהשוואה בפועל (comparator.js לא בודק אותה), ולכן מתקבלת כאן
+// באופן גמיש (\S+) כדי לא לגרום לדילוג שקט על שורות שלמות בטבלה.
 const ROW_RE = new RegExp(
-  "^([\\d.]+)\\s+([\\d.]+)\\s+(\\S.*?)\\s+([\\d.]+)\\s+" +
+  "^(\\S+)\\s+([\\d.]+)\\s+(\\S.*?)\\s+([\\d.]+)\\s+" +
   "(\\d{2}-\\d{2}-\\d{4})\\s+(\\d{2}-\\d{2}-\\d{4})\\s+(\\S.*)$"
 );
 
@@ -76,10 +79,10 @@ function parsePageLines(lines, pageNo, result) {
       months: parseFloat(months),
       zchuyotLabel: toLogical(zchuyotVis.trim()),
       heikef: parseFloat(heikef),
-      mekadem: parseFloat(mekadem),
+      mekadem: parseFloat(mekadem), // עשוי להיות NaN (למשל "V") - לא בשימוש בהשוואה
       page: pageNo,
     };
-    if ([parsed.months, parsed.heikef, parsed.mekadem].some((n) => !Number.isFinite(n))) {
+    if ([parsed.months, parsed.heikef].some((n) => !Number.isFinite(n))) {
       result.warnings.push(`עמוד ${pageNo}: שורת טבלה לא תקינה (ערך מספרי שגוי)`);
       continue;
     }

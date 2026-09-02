@@ -7,6 +7,7 @@
 import { fmtDate } from "./parsers/datParser.js";
 import {
   EXCLUDED_TKUFA_CODES,
+  lookupPdfLabel,
   PDF_TKUFA_LABELS,
   PDF_ZCHUYOT_LABELS,
   SABBATICAL_LABEL,
@@ -88,7 +89,7 @@ function compareRow(pdfRow, datRow, warnings) {
       });
     }
   } else {
-    const allowed = PDF_TKUFA_LABELS[pdfRow.tkufaLabel];
+    const allowed = lookupPdfLabel(PDF_TKUFA_LABELS, pdfRow.tkufaLabel);
     if (allowed === undefined) {
       warnings.push(
         `תווית סוג תקופה לא מוכרת ב-PDF: "${pdfRow.tkufaLabel}" ` +
@@ -118,7 +119,7 @@ function compareRow(pdfRow, datRow, warnings) {
   }
 
   // סוג זכויות
-  const allowedZ = PDF_ZCHUYOT_LABELS[pdfRow.zchuyotLabel];
+  const allowedZ = lookupPdfLabel(PDF_ZCHUYOT_LABELS, pdfRow.zchuyotLabel);
   if (allowedZ === undefined) {
     warnings.push(
       `תווית סוג זכויות לא מוכרת ב-PDF: "${pdfRow.zchuyotLabel}" ` +

@@ -43,6 +43,24 @@ export const SUG_ZCHUYOT = {
   72: "ביטוח בצוברת",
 };
 
+// נרמול תווית לצורך התאמה: הסרת מקפים ורווחים כפולים. חלק מגרסאות הדו"ח
+// מדפיסות תוויות כמו "פחות מ1/3" בלי המקף שמופיע ב"פחות מ-1/3" - שתי
+// הצורות אמורות להתאים לאותו קוד, ולכן ההשוואה מתבצעת אחרי נרמול ולא
+// לפי טקסט מדויק.
+function normalizeLabel(s) {
+  return s.replace(/-/g, "").replace(/\s+/g, " ").trim();
+}
+
+/** חיפוש תווית PDF במפת תוויות, עם נפילה חזרה להתאמה מנורמלת (בלי מקפים). */
+export function lookupPdfLabel(map, label) {
+  if (label in map) return map[label];
+  const normalized = normalizeLabel(label);
+  for (const key of Object.keys(map)) {
+    if (normalizeLabel(key) === normalized) return map[key];
+  }
+  return undefined;
+}
+
 // תווית "סוג זכויות לפנסיה" כפי שמודפסת ב-PDF -> קבוצת קודי DAT אפשריים.
 // תווית אחת יכולה לייצג יותר מקוד אחד (למשל "לא נושא זכויות").
 export const PDF_ZCHUYOT_LABELS = {
