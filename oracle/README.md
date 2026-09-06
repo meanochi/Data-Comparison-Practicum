@@ -25,8 +25,12 @@ docker logs -f oracle-chinuch      # לחכות לשורה: DATABASE IS READY TO
 ## 2. יצירת הטבלאות (חד-פעמי; אפשר להריץ שוב - מוחק ויוצר מחדש)
 
 ```powershell
-docker exec -i oracle-chinuch sqlplus -s chinuch/chinuch123@localhost/FREEPDB1 @/opt/chinuch/create_tables.sql
+docker exec -i oracle-chinuch sqlplus -s chinuch/chinuch123@localhost/FREEPDB1 "@/opt/chinuch/create_tables.sql"
 ```
+
+(המרכאות סביב `@/opt/...` נדרשות ב-PowerShell: בלעדיהן `@` בתחילת פרמטר
+מתפרש כתחביר מיוחד של PowerShell עצמו - "Unrecognized token" - לפני
+שהפקודה בכלל מגיעה לדוקר.)
 
 ## 3. טעינת קובץ DAT — ה-sqlldr האמיתי עם ה-CTL המקורי
 
@@ -47,7 +51,7 @@ sqlldr ידפיס כמה שורות נטענו לכל טבלה; קובצי log/b
 
 ```powershell
 docker exec oracle-chinuch sqlplus -s chinuch/chinuch123@localhost/FREEPDB1 `
-  @/opt/chinuch/rows_json.sql 012345678
+  "@/opt/chinuch/rows_json.sql" 012345678
 ```
 
 את הפלט מדביקים בשדה `rows` בפוסטמן. זו בדיוק השאילתה שהצד השני יריץ:
