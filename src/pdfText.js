@@ -26,6 +26,31 @@
  */
 import * as mupdf from "mupdf";
 
+// בחלק מהפונטים העבריים המשובצים (ללא ToUnicode תקין) טבלת ה-cmap עצמה
+// ממפה את האלף-בית העברי (א-ת, כולל אותיות סופיות: 0x05D0-0x05EA) בהיסט
+// קבוע של 0x330 אל תחום IPA Extensions (0x02A0-0x02BA) - תחום שלא אמור
+// להכיל טקסט עברי אמיתי, ולכן בטוח לתקן אוטומטית בכל מקום שבו מופיע.
+const HEBREW_CMAP_SHIFT_LOW = 0x02a0;
+const HEBREW_CMAP_SHIFT_HIGH = 0x02ba;
+const HEBREW_CMAP_SHIFT_OFFSET = 0x0330;
+function fixHebrewCmapShift(codePoint) {
+  if (codePoint >= HEBREW_CMAP_SHIFT_LOW && codePoint <= HEBREW_CMAP_SHIFT_HIGH) {
+    return codePoint + HEBREW_CMAP_SHIFT_OFFSET;
+  }
+  return codePoint;
+}
+
+// באותם פונטים, גם תווי פיסוק (רווח, נקודתיים) יוצאים כתווי בקרה שגויים -
+// אבל בהיסט אחר מזה של האותיות. תווי הבקרה האלה (U+0000-U+001F) לא אמורים
+// להופיע בטקסט אמיתי בכלל, אז בטוח למפות אותם תמיד.
+const CONTROL_CHAR_FIX = new Map([
+  [0x03, 0x20], // רווח
+  [0x1d, 0x3a], // נקודתיים ':'
+]);
+function fixControlChar(codePoint) {
+  return CONTROL_CHAR_FIX.get(codePoint) ?? codePoint;
+}
+
 // מרווח אופקי (בנקודות) שמעליו מוכנס רווח בין תווים סמוכים -
 // מקביל ל-x_tolerance של pdfplumber.
 const SPACE_GAP = 3;
@@ -208,6 +233,14 @@ function pageToVisualLines(page, gidMaps, unmappedFonts) {
           } else {
             c = String.fromCodePoint(uni);
           }
+        }
+        // תיקון ההיסט חל תמיד, גם כשהתו הגיע ישירות מטבלת ToUnicode של mupdf
+        // (לא רק מהמיפוי המותאם למעלה) - כי גם ToUnicode עצמה יכולה להיות מוזזת.
+        if (c !== "�") {
+          c = [...c]
+            .map((ch) => fixControlChar(fixHebrewCmapShift(ch.codePointAt(0))))
+            .map((cp) => String.fromCodePoint(cp))
+            .join("");
         }
         // quad: [ulx, uly, urx, ury, llx, lly, lrx, lry]
         chars.push({

@@ -1,0 +1,4 @@
+CREATE USER prm_system_copy IDENTIFIED BY prm123;
+GRANT CONNECT, RESOURCE TO prm_system_copy;
+ALTER USER prm_system_copy QUOTA UNLIMITED ON USERS;
+EXIT
