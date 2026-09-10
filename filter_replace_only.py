@@ -17,11 +17,20 @@ import sys
 import re
 
 START_KEEP_RE = re.compile(
-    r'^\s*create\s+or\s+replace\s+(package\s+body|package|procedure|function|trigger|type|synonym)\b',
+    r'^\s*create\s+or\s+replace\s+(package\s+body|package|procedure|function|trigger|type\s+body|type|synonym|force\s+view|view)\b',
+    re.IGNORECASE,
+)
+# משפטים "פשוטים" (לא בלוק PL/SQL) - synonym/view מסתיימים כבר ב-';' עצמם
+# במקור, בלי '/' בכלל; '/' שאנחנו מוסיפים גורם ל-DBeaver לנסות להריץ אותו
+# כמשפט נפרד (ORA-00900). לעומת זאת: type (object, בלי body) מסתיים ב-')'
+# *בלי* ';' - הוא חייב '/' (אין שום דבר אחר שמסמן את סוף ההצהרה). אושר ישירות
+# מול קובץ המקור: synonym/view => אין '/' במקור; type object => יש '/' במקור.
+SIMPLE_STATEMENT_RE = re.compile(
+    r'^\s*create\s+or\s+replace\s+(synonym|force\s+view|view)\b',
     re.IGNORECASE,
 )
 START_DROP_RE = re.compile(
-    r'^\s*create\s+(table|sequence|index|unique\s+index)\b',
+    r'^\s*create\s+(global\s+temporary\s+table|table|sequence|unique\s+index|index)\b',
     re.IGNORECASE,
 )
 PROMPT_RE = re.compile(r'^\s*prompt\b', re.IGNORECASE)
@@ -40,9 +49,19 @@ def main():
 
     out_lines = []
     keeping = False
+    current_is_simple = False
     kept_count = 0
     i = 0
     n = len(lines)
+
+    def close_block():
+        # משפט פשוט (synonym/view/type) - בלי '/' (הוא כבר הסתיים ב-';').
+        # בלוק PL/SQL (package/body/procedure/function/trigger) - עם '/'.
+        if current_is_simple:
+            out_lines.append("\n")
+        else:
+            out_lines.append("/\n\n")
+
     while i < n:
         line = lines[i]
 
@@ -53,6 +72,7 @@ def main():
         if not keeping:
             if START_KEEP_RE.match(line):
                 keeping = True
+                current_is_simple = bool(SIMPLE_STATEMENT_RE.match(line))
                 kept_count += 1
                 out_lines.append(line)
             # אם זו שורת CREATE TABLE/SEQUENCE/INDEX או כל שורה אחרת בזמן
@@ -63,9 +83,10 @@ def main():
         # keeping == True: אנחנו בתוך הצהרת CREATE OR REPLACE שרוצים לשמור
         if START_DROP_RE.match(line) or START_KEEP_RE.match(line):
             # הגענו להצהרה חדשה בלי '/' מפריד - נסגור את הקודמת כאן
-            out_lines.append("/\n\n")
+            close_block()
             if START_KEEP_RE.match(line):
                 keeping = True
+                current_is_simple = bool(SIMPLE_STATEMENT_RE.match(line))
                 kept_count += 1
                 out_lines.append(line)
             else:
@@ -74,8 +95,13 @@ def main():
             continue
 
         if SLASH_ONLY_RE.match(line):
-            out_lines.append(line)
-            out_lines.append("\n")
+            if current_is_simple:
+                # מדלגים על ה-'/' המיותר אחרי משפט פשוט (זה מה שגרם ל-ORA-00900
+                # ב-DBeaver - הוא ניסה להריץ את ה-'/' כמשפט בפני עצמו)
+                out_lines.append("\n")
+            else:
+                out_lines.append(line)
+                out_lines.append("\n")
             keeping = False
             i += 1
             continue
@@ -83,9 +109,9 @@ def main():
         out_lines.append(line)
         i += 1
 
-    # אם הקובץ נגמר באמצע שמירה (בלי '/' סוגר) - נוסיף '/' בסוף
+    # אם הקובץ נגמר באמצע שמירה - לסגור כראוי
     if keeping:
-        out_lines.append("\n/\n")
+        close_block()
 
     with open(out_path, "w", encoding="utf-8") as f:
         f.writelines(out_lines)

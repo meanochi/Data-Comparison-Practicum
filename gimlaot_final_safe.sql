@@ -1,15 +1,14 @@
 create or replace synonym PRM_SYSTEM_COPY.AUDIT_NETUNEY_SACHAR
   for ISORACLE.AUDIT_NETUNEY_SACHAR;
 
-/
 
 create or replace synonym PRM_SYSTEM_COPY.AUDIT_NETUNEY_TIK_MECHUSHAVIM
   for ISORACLE.AUDIT_NETUNEY_TIK_MECHUSHAVIM;
 
-/
 
 create or replace synonym PRM_SYSTEM_COPY.AUDIT_TOSEFOT
   for ISORACLE.AUDIT_TOSEFOT;
+
 
 create or replace force view prm_system_copy.v_bakasha_last_status as
 select /*+ INDEX( p PRISHA_PK)
@@ -91,6 +90,7 @@ on cr.code_role = w.code_role_to
 left join code_sug_bakasha sb
 on sb.code_sug_bakasha = b.code_sug_bakasha;
 
+
 create or replace force view prm_system_copy.porshim_and_tikim_vw as
 select p."MISPAR_ZEHUT",
        p."TAARICH_RISHUM",
@@ -129,6 +129,7 @@ select p."MISPAR_ZEHUT",
   left join poresh p
  on p.porshim_seq = t.SEQ_PORSHIM;
 
+
 CREATE OR REPLACE FORCE VIEW PRM_SYSTEM_COPY.PRM_LOCKED_OBJECTS AS
 SELECT a.username,c.os_user_name,a.terminal,
 substr(c.os_user_name,instr(c.os_user_name,'\')+1,100) os_user,
@@ -150,6 +151,7 @@ and b.object_id = c.object_id
     --                          and l.finished=0
       --                       )
 ;
+
 
 create or replace force view prm_system_copy.prm_poresh_category as
 select a.mispar_zehut,
@@ -191,6 +193,7 @@ select *
 from v,v1
 where v.mz = v1.mispar_zehut )a;
 
+
 create or replace force view prm_system_copy.vp_v_mesimot as
 select m."ID_MESIMA",m."TAARICH_MESIMA",m."MAARECHET",m."TEUR_MESIMA",
 m."TAARICH_BITZUA",m."TIMING",m."MISPAR_ADIFUT",m."SHEM",m."ADIFUT_ZMANI",
@@ -198,6 +201,7 @@ m."TAARICH_HATCHALA",m."SHAT_HATCHALA",m."TAARICH_SIYUM",m."SHAT_SIYUM",
 m."PROJECT_ID", p.project_name, u.user_name, m.user_id, u.hirarchy_id
 from vp_mesimot m, vp_mesimot_projects p, vp_mesimot_users u
 where p.project_id = m.project_id and u.user_id = m.user_id;
+
 
 create or replace force view prm_system_copy.vp_v_mesimot_bitzua as
 select a."ID_MESIMA",a."TAARICH",a."MISHAA",a."AD_SHAA",a."PERUT",
@@ -222,21 +226,25 @@ left join vp_mesimot_users u on (b.user_id = u.user_id)
 left join vp_mesimot_projects p on ( p.project_id = m.project_id)
 ) a;
 
+
 create or replace force view prm_system_copy.vp_v_mesimot_days as
 select distinct b."USER_ID", b.taarich from
 vp_mesimot_bitzua b
 group by b."USER_ID", b.taarich;
+
 
 create or replace force view prm_system_copy.vp_v_mesimot_days_worked as
 select b."USER_ID", to_char(b.taarich,'YYYY/MM') month,count(distinct b.taarich) days_worked from
 vp_mesimot_bitzua b
 group by b."USER_ID", to_char(b.taarich,'YYYY/MM');
 
+
 create or replace force view prm_system_copy.vp_v_mesimot_nochechut_maar as
 select b."USER_ID", tRUNC(TO_DATE( b."TAARICH" ),'MM') chodesh,
        sum(sach_shaot) sach_shaot from vp_v_mesimot_bitzua b
 group by
        b."USER_ID", tRUNC(TO_DATE( b."TAARICH" ),'MM');
+
 
 create or replace force view prm_system_copy.vp_v_mesimot_nochechut as
 select nm."USER_ID",nm.chodesh, round(nvl(msn.sach_hours,nm.sach_shaot)) sach_shaot
@@ -247,16 +255,19 @@ vp_v_mesimot_nochechut_maar nm
 left join vp_mesimot_nochechut msn on (msn.user_id=nm."USER_ID" and msn.month_nochechut=nm.chodesh)
 left join vp_v_mesimot_days_worked dw on (nm.user_id = dw."USER_ID" and to_char(nm.chodesh,'YYYY/MM')=dw.month);
 
+
 create or replace force view prm_system_copy.vp_v_mesimot_shaot as
 select user_id, t."ID_MESIMA", t."PROJECT_NAME",t.mesima,
 sum(t.sach_shaot) shaot  from VP_V_MESIMOT_BITZUA t
 group by user_id, t."ID_MESIMA", t."PROJECT_NAME",t.mesima;
+
 
 create or replace force view prm_system_copy.vp_v_mesimot_shaot_chodshi_klali as
 select user_id, t.month,
 sum(t.sach_shaot) shaot_chodshi  from VP_V_MESIMOT_BITZUA t
 where t."PROJECT_NAME"='כללי'
 group by user_id, t.month;
+
 
 create or replace force view prm_system_copy.vp_v_mesimot_shaot_chodshi as
 select  t."USER_ID", t.month, t.sach_shaot-t1.shaot_chodshi sach_shaot from
@@ -265,6 +276,7 @@ select  t."USER_ID", t.month, t.sach_shaot-t1.shaot_chodshi sach_shaot from
  from VP_V_MESIMOT_BITZUA t
  group by t.user_id, t.month ) t
 left join VP_V_MESIMOT_SHAOT_CHODSHI_KLALI t1 on (t."USER_ID"=t1.user_id and t.month=t1.month);
+
 
 create or replace force view prm_system_copy.v_actions_2_current_and_prev as
 select b.seq_bakasha current_seq_bakasha, a."SEQ_ACTION_LOG",a."CODE_ACTION",a."DATE_ACTION",a."CODE_USER_UPDATE",a."CODE_USER_TO_INTERNAL",a."REMARKS",a."DATE_TO_DO",a."DATE_DO",a."CODE_USER_TO_EXTERNAL",a."SEQ_BAKASHA",a.step_number
@@ -275,6 +287,7 @@ and b.seq_bakasha >= prev_b.seq_bakasha
 left join action_log a
 on prev_b.seq_bakasha = a.seq_bakasha
 order by a.seq_bakasha desc, a.step_number desc;
+
 
 create or replace force view prm_system_copy.v_address_bney_mishpacha as
 select t.seq_bakasha,
@@ -301,6 +314,7 @@ select t.seq_bakasha,
              end   ktovet
     from address t where t.seq_bney_mishpacha> 0;
 
+
 create or replace force view prm_system_copy.v_address_poresh as
 select t.seq_bakasha,
          t.code_address,
@@ -325,7 +339,6 @@ select t.seq_bakasha,
              end   ktovet
     from address t where t.seq_poresh> 0;
 
-/
 
 CREATE OR REPLACE TYPE PRM_SYSTEM_COPY."T_STRING_AGG" AS OBJECT
 (
@@ -351,6 +364,666 @@ CREATE OR REPLACE FUNCTION PRM_SYSTEM_COPY.string_agg (p_input VARCHAR2)
 RETURN VARCHAR2
 PARALLEL_ENABLE AGGREGATE USING t_string_agg;
 /
+
+create or replace force view prm_system_copy.v_advanced_search_ezor_ovdim as
+select distinct string_agg(c.seq_ezor_ovdim) as seq_ezor_ovdim, c.teur_ezor_ovdim, c.pail,c.code_sug_ezor_ovdim from code_ezor_ovdim c
+group by c.teur_ezor_ovdim, c.pail,c.code_sug_ezor_ovdim;
+
+
+create or replace force view prm_system_copy.v_mukdemet as
+select    t.mispar_misra,
+          t.toar_misra,
+          p.seq_ezor_ovdim,
+          p.seq_poresh seq_porshim,
+          t.misrad_maskoret,
+          t.code_derug,
+          t.code_darga_me,
+          t.code_darga_ad,
+          t.code_seif_prisha,
+          t.taarich_siyum_sherut,
+          t.code_sug_tochnit_prisha,
+          t.taarich_bakasha,
+          t.code_sug_misra_lebitul,
+          t.maskoret_kovaat,
+          t.chelkiyut_hasaka_meshuklelet,
+          t.shnot_sherut_bamedina,
+          t.taarich_knisa,
+          e.code_makor,
+          b.seq_bakasha,
+          b.seq_prisha,
+          p2.mispar_zehut,
+          b.code_source
+     from bakasha b
+     left join bakasha_mukdemet t
+     on t.seq_bakasha = b.seq_bakasha
+     left join prisha p
+     on p.seq_prisha = b.seq_prisha
+     left join poresh p2
+     on p2.porshim_seq = p.seq_poresh
+     left join code_ezor_ovdim e
+     on e.seq_ezor_ovdim = p.seq_ezor_ovdim
+     where b.code_sug_bakasha = 2;
+
+
+create or replace force view prm_system_copy.v_regila as
+select distinct
+       t1."TAARICH_RISHUM",e.code_makor,t1."TASHLUM_MOSAD_MUKAR",t1."TAARICH_CHATIMAT_TOFES",t1."CHISUV_LEFY_NECHUT",t1."ISHUR_PRISHA_LO_SOF_HODESH",t1."ISHUR_PRISHA_AL_AF_TIK_MISHMAT",t1."TAARICH_PRISHA",t1."SHERUT_MUGDAL",t1."SIBAT_DCHIA",t1."DCHIA_HEAROT",t1."TAARICH_ISHUR",t1."SUCH_YEMEY_HEADRUT",t1."SUCH_YEMEY_HEADRUT_SHNIRKSHU",t1."NECHUT_ACHUZ",t1."NECHUT_TAARICH_HAMIGBALA",t1."CHINUCH_MIKZOA",t1."HAARACHA_10_SHANIM",t1."CHISUV_LEFY_SHEERUT",t1."NECHUT_ACHUZ_NECHUT_LEPRISHA",t1."MISPAR_MISRA_ACHARON",t1."TEUR_MISRA_ACHARON",t1."CODE_SEIF_PRISHA",p1."SEQ_EZOR_OVDIM",p1.seq_poresh as seq_porshim,t1."TAARICH_HAFAKAT_MISMACH",t1."MISRAD_MASKORET",t1."NECHUT_MIGBALA_BKNISA_LESHERUT",t1."TAARICH_DCHIA"
+       ,p.mispar_zehut
+      ,t1.seq_contacts_ministries
+      ,b.seq_bakasha
+      ,b.seq_prisha
+      ,b.code_source
+      ,b.code_sug_bakasha
+      , wf.code_sug_workflow,
+      p1.seq_code_unit chinuch_machoz
+from bakasha b
+left join bakasha_regila t1
+on t1.seq_bakasha = b.seq_bakasha
+left join prisha p1
+on b.seq_prisha = p1.seq_prisha
+left join poresh p
+on p.porshim_seq = p1.seq_poresh
+left join code_ezor_ovdim e
+on p1.seq_ezor_ovdim = e.seq_ezor_ovdim
+left join workflow_2_sug_bakasha wf
+on wf.code_source = b.code_source
+and wf.code_sug_bakasha = b.code_sug_bakasha
+where b.code_sug_bakasha <> 2;
+
+
+create or replace force view prm_system_copy.v_bakasha as
+select t1.code_sug_bakasha, t1.CODE_MAKOR, t1.MISPAR_ZEHUT, t1.TAARICH_PRISHA,t1.SEQ_BAKASHA,t1.SEQ_PRISHA,t1.code_source,t1.SEQ_EZOR_OVDIM
+from v_regila t1
+union select 2, t2.CODE_MAKOR, t2.MISPAR_ZEHUT,mh.taarich_prisha,t2.SEQ_BAKASHA,t2.SEQ_PRISHA,t2.code_source,t2.SEQ_EZOR_OVDIM
+from v_mukdemet t2
+left join tikim_mukdemet_hachlatot mh
+on t2.SEQ_BAKASHA = mh.seq_bakasha;
+
+
+create or replace force view prm_system_copy.v_documents_2_current_and_prev as
+select b.seq_bakasha current_seq_bakasha, a."SEQ_DOCUMENT_BAKASHA",a."SEQ_DOCUMENT",a."SEQ_BAKASHA",a."SEQ_ACTION_LOG",a."PAIL"
+from bakasha b
+left join bakasha prev_b
+on prev_b.seq_prisha = b.seq_prisha
+and b.seq_bakasha >= prev_b.seq_bakasha
+left join document_bakasha a
+on prev_b.seq_bakasha = a.seq_bakasha
+order by b.seq_bakasha;
+
+
+create or replace force view prm_system_copy.v_all_documents as
+select "DOCUMENTS","CURRENT_SEQ_BAKASHA","SEQ_BAKASHA","SEQ_DOCUMENT","DOCUMENT_URL","DATE_UPDATE",
+code_role, code_department,
+"TEUR","REMARKS","TEUR_DOCUMENT_TYPE","CODE_DOCUMENT_DIRECTION",
+"TEUR_DOCUMENT_DIRECTION","SHEM","TEUR_DEPARTMENT","USER_ID","MISPARSIDURI","ARCHIV_FILE_PATH","FILE_PATH" from
+(select
+1 documents, c2.current_seq_bakasha, c2.seq_bakasha, d.seq_document, d.document_url, d.date_update,d.code_role ,d.code_department,
+decode(dd.code_document_direction,2,dt.teur_document_type,d.teur) teur, d.remarks,
+dt.teur_document_type, dd.code_document_direction, dd.teur_document_direction,
+trim(u.shem_prati) || ' ' || trim(u.shem_mishpacha) shem,
+cd.teur_department,
+0 user_id, 0 misparsiduri, '' archiv_file_path ,'' file_path
+from v_documents_2_current_and_prev c2
+left join document d
+on d.seq_document = c2.seq_document
+left join code_department cd
+on cd.code_department = d.code_department
+left join document_bakasha db on
+db.seq_document = d.seq_document
+and db.seq_bakasha = c2.seq_bakasha
+left join code_document_type dt
+on dt.seq_document_type = d.seq_document_type
+left join code_document_direction dd
+on dd.code_document_direction = d.code_document_direction
+left join code_user u
+on u.id_user = d.code_user
+left join perm_user_role ur
+on ur.code_user = u.id_user
+where nvl(db.pail,0) = 1
+union
+select
+2 documents, b.seq_bakasha,0, 0, a.pdf_file_path, a.insert_date, null, null, a.sugtofes, a.hearot,
+'', 0, '',
+a.shem,'ארכיון',
+a.user_id, a.misparsiduri, a.archiv_file_path, a.file_path
+from temp_archive a
+left join prisha p
+on p.gimla_number = a.mispar_gimla
+left join v_bakasha b
+on b.seq_prisha = p.seq_prisha) mismachim
+--where mismachim.current_seq_bakasha = 28845
+;
+
+
+create or replace force view prm_system_copy.v_all_documents1 as
+select "DOCUMENTS","CURRENT_SEQ_BAKASHA","SEQ_BAKASHA","SEQ_DOCUMENT","DOCUMENT_URL","DATE_UPDATE",
+code_role, code_department,
+"TEUR","REMARKS","TEUR_DOCUMENT_TYPE","CODE_DOCUMENT_DIRECTION",
+"TEUR_DOCUMENT_DIRECTION","SHEM","TEUR_DEPARTMENT","USER_ID","MISPARSIDURI","ARCHIV_FILE_PATH","FILE_PATH","PAIL" from
+(select
+1 documents, c2.current_seq_bakasha, c2.seq_bakasha, d.seq_document, d.document_url, d.date_update,d.code_role ,d.code_department,
+decode(dd.code_document_direction,2,dt.teur_document_type,d.teur) teur, d.remarks,
+dt.teur_document_type, dd.code_document_direction, dd.teur_document_direction,
+trim(u.shem_prati) || ' ' || trim(u.shem_mishpacha) shem,
+cd.teur_department,
+0 user_id, 0 misparsiduri, '' archiv_file_path ,'' file_path, db.pail
+from v_documents_2_current_and_prev c2
+left join document d
+on d.seq_document = c2.seq_document
+left join code_department cd
+on cd.code_department = d.code_department
+left join document_bakasha db on
+db.seq_document = d.seq_document
+and db.seq_bakasha = c2.seq_bakasha
+left join code_document_type dt
+on dt.seq_document_type = d.seq_document_type
+left join code_document_direction dd
+on dd.code_document_direction = d.code_document_direction
+left join code_user u
+on u.id_user = d.code_user
+left join perm_user_role ur
+on ur.code_user = u.id_user
+where db.pail = 1
+union
+select
+2 documents, b.seq_bakasha,0, 0, a.pdf_file_path, a.insert_date, null, null, a.sugtofes, a.hearot,
+'', 0, '',
+a.shem,'ארכיון',
+a.user_id, a.misparsiduri, a.archiv_file_path, a.file_path, 1
+from temp_archive a
+left join prisha p
+on p.gimla_number = a.mispar_gimla
+left join v_bakasha b
+on b.seq_prisha = p.seq_prisha) mismachim
+--where mismachim.current_seq_bakasha = 28845
+;
+
+
+create or replace force view prm_system_copy.v_regila_curnt_action_versions as
+select distinct
+       t1."TAARICH_RISHUM",t1.code_makor,t1."TASHLUM_MOSAD_MUKAR",t1."TAARICH_CHATIMAT_TOFES",t1."CHISUV_LEFY_NECHUT",t1."ISHUR_PRISHA_LO_SOF_HODESH",t1."ISHUR_PRISHA_AL_AF_TIK_MISHMAT",t1."TAARICH_PRISHA",t1."SHERUT_MUGDAL",t1."SIBAT_DCHIA",t1."DCHIA_HEAROT",t1."TAARICH_ISHUR",t1."SUCH_YEMEY_HEADRUT",t1."SUCH_YEMEY_HEADRUT_SHNIRKSHU",t1."NECHUT_ACHUZ",t1."NECHUT_TAARICH_HAMIGBALA",t1."CHINUCH_MACHOZ",t1."CHINUCH_MIKZOA",t1."HAARACHA_10_SHANIM",t1."CHISUV_LEFY_SHEERUT",t1."NECHUT_ACHUZ_NECHUT_LEPRISHA",t1."MISPAR_MISRA_ACHARON",t1."TEUR_MISRA_ACHARON",t1."CODE_SEIF_PRISHA",t1."SEQ_EZOR_OVDIM",t1.seq_porshim as seq_porshim,t1."TAARICH_HAFAKAT_MISMACH",t1."MISRAD_MASKORET",t1."NECHUT_MIGBALA_BKNISA_LESHERUT",t1."TAARICH_DCHIA",
+       first_value(s1.code_action)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_action,
+       first_value(s1.date_action)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) date_action,
+       first_value(s1.code_user_update)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_user_update,
+       first_value(s2.teur_action)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) teur_action,
+       first_value(s1.remarks)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) remarks
+      ,t1.mispar_zehut
+      ,t1.seq_contacts_ministries
+      ,t1.seq_bakasha
+      ,t1.seq_prisha
+      ,first_value(s1.code_user_to_internal)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_user_to_internal
+      ,first_value(s1.date_to_do)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) date_to_do
+      ,first_value(s1.date_do)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) date_do
+      ,first_value(s1.code_user_to_external)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_user_to_external
+      ,first_value(s2.is_new)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) is_new
+      ,first_value(s1.seq_action_log)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) seq_action_log,
+      t1.code_sug_bakasha
+from v_regila t1
+left join action_log s1
+on t1.seq_bakasha = s1.seq_bakasha
+left join code_action s2
+on s1.code_action = s2.code_action;
+
+
+create or replace force view prm_system_copy.v_regila_curnt_action as
+select "TAARICH_RISHUM","CODE_MAKOR","TASHLUM_MOSAD_MUKAR","TAARICH_CHATIMAT_TOFES","CHISUV_LEFY_NECHUT","ISHUR_PRISHA_LO_SOF_HODESH","ISHUR_PRISHA_AL_AF_TIK_MISHMAT","TAARICH_PRISHA","SHERUT_MUGDAL","SIBAT_DCHIA","DCHIA_HEAROT","TAARICH_ISHUR","SUCH_YEMEY_HEADRUT","SUCH_YEMEY_HEADRUT_SHNIRKSHU","NECHUT_ACHUZ","NECHUT_TAARICH_HAMIGBALA","CHINUCH_MACHOZ","CHINUCH_MIKZOA","HAARACHA_10_SHANIM","CHISUV_LEFY_SHEERUT","NECHUT_ACHUZ_NECHUT_LEPRISHA","MISPAR_MISRA_ACHARON","TEUR_MISRA_ACHARON","CODE_SEIF_PRISHA","SEQ_EZOR_OVDIM","SEQ_PORSHIM","TAARICH_HAFAKAT_MISMACH","MISRAD_MASKORET","NECHUT_MIGBALA_BKNISA_LESHERUT","TAARICH_DCHIA","CODE_ACTION","DATE_ACTION","CODE_USER_UPDATE","TEUR_ACTION","REMARKS","MISPAR_ZEHUT","SEQ_CONTACTS_MINISTRIES","SEQ_BAKASHA","SEQ_PRISHA","CODE_USER_TO_INTERNAL","DATE_TO_DO","DATE_DO","CODE_USER_TO_EXTERNAL","IS_NEW","SEQ_ACTION_LOG","CODE_SUG_BAKASHA"
+from v_regila_curnt_action_versions v
+where v.seq_bakasha = (select max(t.seq_bakasha)
+                 from v_regila t
+                 where
+                 v.seq_prisha = t.seq_prisha);
+
+
+create or replace force view prm_system_copy.v_all_rejected_tikim as
+select "ZEHUT","CODE_MAKOR","DATE_REJECTED",to_char(reason) as reason,reason_varchar, 'N' In_system,null SEQ_BAKASHA, l.SEQ_EZOR_OVDIM
+ from ld_rejected_tikim l
+union select
+t.mispar_zehut, t.CODE_MAKOR,t.DATE_ACTION,t.REMARKS,t.REMARKS,'Y',t.SEQ_BAKASHA,t.SEQ_EZOR_OVDIM
+from v_regila_curnt_action t
+where t.CODE_ACTION in (4,7)
+and trunc(t.DATE_ACTION) > to_date('30052013','ddmmyyyy');
+
+
+create or replace force view prm_system_copy.v_bakasha_by_zheut as
+select distinct b."SEQ_BAKASHA",b."SEQ_PRISHA",b."CODE_SUG_BAKASHA",b."REMARKS",b."CODE_BAKASHA_DETAIL",b."DATE_BAKASHA",b."CODE_SOURCE",b."IS_ELECTRONIC",b."DATE_UPDATE",b."FROM_DATE",p.seq_ezor_ovdim,p.gimla_number,p.seq_code_unit,po.mispar_zehut,
+                                                           po.taarich_rishum,
+                                                           po.shem_prati,
+                                                           po.shem_kodem,
+                                                           po.shem_mishpacha,
+                                                           po.taarich_aliya,
+                                                           po.code_medinat_moza,
+                                                           po.taarich_leda,
+                                                           po.address1,
+                                                           po.city_code1,
+                                                          po.porshim_seq,
+                                                           po.mikud1,
+                                                           po.telephon,
+                                                           po.pelephon,
+                                                           po.code_min,
+                                                           po.taarich_ptira,
+                                                           po.mekabal_kizva,
+
+                                                           po.mispar_oved_merkava,
+                                                           po.telephon2,
+                                                           po.sug_zihuy,
+                                                           po.toar,
+                                                           po.code_ptira_siba,
+                                                           po.is_newcomer,
+                                                           po.is_asir,
+                                                           po.date_begin_maasar,
+                                                           po.account_number,
+                                                           po.seq_apotropus,
+                                                           po.date_end_maasar,
+                                                           po.date_mazav_mishpachti1,
+                                                           po.email,
+                                                           po.is_owner_teudat_ptira,
+                                                           po.income_tax,
+                                                           po.sapak_number,
+                                                           po.last_arrival_date,
+                                                           po.last_departure_date,e.code_makor
+  from bakasha b
+  left join prisha p
+    on b.seq_prisha = p.seq_prisha
+  left join poresh po
+    on p.seq_poresh = po.porshim_seq
+  left join code_ezor_ovdim e
+    on p.seq_ezor_ovdim = e.seq_ezor_ovdim;
+
+
+create or replace force view prm_system_copy.v_bakasha_combination as
+select t.seq_bakasha,
+  t.code_sub_seif_prisha,
+  arai.seq_bakasha as seq_bakasha_arai,
+  n.is_salary_up_70,
+  n.tkufa_overlap_kizba,
+  n.tkufa_overlap_maanak,
+  n.is_zakai_lmaanak,
+  n.code_group_prisha,
+  t1.code_tag_bakasha as t_heskem,
+  t2.code_tag_bakasha as t_arai,
+  t3.code_tag_bakasha as t_up_70,
+  t4.code_tag_bakasha as t_overlap,
+  t5.code_tag_bakasha as t_maanak,
+  t6.code_tag_bakasha as t_sheerim,
+  t1.teur_tag_bakasha as t_heskem_desc,
+  t2.teur_tag_bakasha as t_arai_desc,
+  t3.teur_tag_bakasha as t_up_70_desc,
+  t4.teur_tag_bakasha as t_overlap_desc,
+  t5.teur_tag_bakasha as t_maanak_desc,
+  t6.teur_tag_bakasha as t_sheerim_desc,
+  nvl(t1.code_tag_bakasha,0) +
+      nvl(t2.code_tag_bakasha,0) +
+      nvl(t3.code_tag_bakasha,0) +
+      nvl(t4.code_tag_bakasha,0) +
+      nvl(t5.code_tag_bakasha,0) +
+      nvl(t6.code_tag_bakasha,0) as combination,
+  decode (t1.code_tag_bakasha,null,'',t1.teur_tag_bakasha || ', ') ||
+  decode (t2.code_tag_bakasha,null,'',t2.teur_tag_bakasha || ', ') ||
+  decode (t3.code_tag_bakasha,null,'',t3.teur_tag_bakasha || ', ') ||
+  decode (t4.code_tag_bakasha,null,'',t4.teur_tag_bakasha || ', ') ||
+  decode (t5.code_tag_bakasha,null,'',t5.teur_tag_bakasha || ', ') ||
+  decode (t6.code_tag_bakasha,null,'',t6.teur_tag_bakasha) teur_combination
+from
+bakasha_regila t
+left join netuney_tik_mechushavim n
+on t.seq_bakasha = n.seq_bakasha
+and n.code_department = 2
+left join bakasha b
+on t.seq_bakasha = b.seq_bakasha
+left join (select max(p.seq_bakasha) as seq_bakasha
+            from participation_tkufot pt
+            left join participation p
+            on p.seq_participation = pt.seq_participation
+            where pt.code_sug_tkufa = 1
+            group by p.seq_bakasha) arai
+on t.seq_bakasha = arai.seq_bakasha
+left join code_tag_bakasha t1
+on t1.code_tag_bakasha = 1
+and t.code_sub_seif_prisha = 990
+left join code_tag_bakasha t2
+on t2.code_tag_bakasha = 2
+and arai.seq_bakasha is not null
+left join code_tag_bakasha t3
+on t3.code_tag_bakasha = 4
+and n.is_salary_up_70 = 1
+left join code_tag_bakasha t4
+on t4.code_tag_bakasha = 8
+and (nvl(n.tkufa_overlap_kizba,0) > 0 or nvl(n.tkufa_overlap_maanak,0) > 0)
+left join code_tag_bakasha t5
+on t5.code_tag_bakasha = 16
+and n.is_zakai_lmaanak = 1
+left join code_tag_bakasha t6
+on t6.code_tag_bakasha = 32
+and n.code_group_prisha = 4
+where b.code_sug_bakasha in(7,8,9);
+
+
+create or replace force view prm_system_copy.v_bakasha_crm as
+select b."SEQ_BAKASHA",b."SEQ_PRISHA",b."CODE_SUG_BAKASHA",b."REMARKS",b."CODE_BAKASHA_DETAIL",b."DATE_BAKASHA",b."CODE_SOURCE",b."IS_ELECTRONIC",b."DATE_UPDATE",b."FROM_DATE",b."SEQ_BNEY_MISHPACHA",b."CRM_NUMBER", br.taarich_prisha, pr.gimla_number, pr.seq_poresh, br.code_seif_prisha
+    from bakasha b
+    left join bakasha_regila br on br.seq_bakasha = b.seq_bakasha
+    left join prisha pr         on pr.seq_prisha = b.seq_prisha;
+
+
+create or replace force view prm_system_copy.v_mukdmt_curnt_action_versions as
+select    t.mispar_misra,
+          t.toar_misra,
+          t.seq_ezor_ovdim,
+          t.seq_porshim,
+          t.misrad_maskoret,
+          t.code_derug,
+          t.code_darga_me,
+          t.code_darga_ad,
+          t.code_seif_prisha,
+          t.taarich_siyum_sherut,
+          t.code_sug_tochnit_prisha,
+          t.taarich_bakasha,
+          t.code_sug_misra_lebitul,
+          t.maskoret_kovaat,
+          t.chelkiyut_hasaka_meshuklelet,
+          t.shnot_sherut_bamedina,
+          t.taarich_knisa,
+          t.code_makor,
+       first_value(s1.code_action)over(partition by t.seq_bakasha order by s1.date_action desc) code_action,
+       first_value(s1.date_action)over(partition by t.seq_bakasha order by s1.date_action desc) date_action,
+       first_value(s1.code_user_update)over(partition by t.seq_bakasha order by s1.date_action desc) code_user_update,
+       first_value(s2.teur_action)over(partition by t.seq_bakasha order by s1.date_action desc) teur_action,
+          t.seq_bakasha,
+          t.seq_prisha,
+          t.mispar_zehut,
+       first_value(s1.code_user_to_internal)over(partition by t.seq_bakasha order by s1.date_action desc) code_user_to_internal,
+       first_value(s1.date_to_do)over(partition by t.seq_bakasha order by s1.date_action desc) date_to_do,
+       first_value(s1.date_do)over(partition by t.seq_bakasha order by s1.date_action desc) date_do,
+       first_value(s1.code_user_to_external)over(partition by t.seq_bakasha order by s1.date_action desc) code_user_to_external,
+       first_value(s1.remarks)over(partition by t.seq_bakasha order by s1.date_action desc) remarks
+       ,first_value(s2.is_new)over(partition by t.seq_bakasha order by s1.date_action desc) is_new,
+       first_value(s1.seq_action_log)over(partition by t.seq_bakasha order by s1.date_action desc) seq_action_log
+     from v_mukdemet t
+     left join action_log s1
+     on t.seq_bakasha = s1.seq_bakasha
+     left join code_action s2
+     on s1.code_action = s2.code_action;
+
+
+create or replace force view prm_system_copy.v_bakasha_curnt_action as
+select 1 code_sug_bakasha, t1.CODE_MAKOR, t1.MISPAR_ZEHUT, t1.TAARICH_PRISHA,t1.SEQ_BAKASHA,t1.SEQ_PRISHA,
+code_action, date_action, code_user_update, teur_action, remarks, code_user_to_internal, date_to_do, date_do, code_user_to_external,is_new, seq_action_log,code_seif_prisha
+from v_regila_curnt_action_versions t1
+union select 2, t2.CODE_MAKOR, t2.MISPAR_ZEHUT,mh.taarich_prisha,t2.SEQ_BAKASHA,t2.SEQ_PRISHA,
+code_action, date_action, code_user_update, teur_action, remarks, code_user_to_internal, date_to_do, date_do, code_user_to_external,is_new, seq_action_log,code_seif_prisha
+from v_mukdmt_curnt_action_versions t2
+left join tikim_mukdemet_hachlatot mh
+on t2.SEQ_BAKASHA = mh.seq_bakasha;
+
+
+create or replace force view prm_system_copy.v_bakasha_dtails_and_hagdalot as
+select 1||','||t.code_bakasha_detail as code_bakasha_detail,
+         t.teur_bakasha_detail,
+         t.code_sug_bakasha
+    from code_bakasha_detail t
+   union all
+   select 0||','||t1.code_nimuk as code_bakasha_detail,
+           t1.teur_nimuk_rishmi,
+           t2.code_sug_bakasha
+   from code_hagdala_nimuk t1
+left join code_sug_bakasha t2
+on t2.code_merge_bakasha = 1
+or t2.code_sug_bakasha = 7;
+
+
+create or replace force view prm_system_copy.v_bakasha_last_zakaut as
+with b as
+ (select b.seq_prisha, b.seq_bakasha
+    from bakasha b
+    left join action_log a1
+      on a1.seq_bakasha = b.seq_bakasha
+     and a1.code_action = 17
+   where a1.seq_action_log is null
+     and b.code_sug_bakasha in (1, 3, 5)),
+c as
+ (select b.seq_prisha, b.seq_bakasha
+    from bakasha b
+    left join code_sug_bakasha s
+      on s.code_sug_bakasha = b.code_sug_bakasha
+    left join action_log a1
+      on a1.seq_bakasha = b.seq_bakasha
+     and a1.code_action = 17
+   where a1.seq_action_log is null
+     and nvl(s.code_merge_bakasha, 0) = 1),
+d as
+ (select b.seq_prisha, b.seq_bakasha
+    from bakasha b
+    left join netuney_tik_mechushavim n
+      on b.seq_bakasha = n.seq_bakasha
+     and n.code_department = 2
+     and n.mispar_misra = 0
+    left join action_log a1
+      on a1.seq_bakasha = b.seq_bakasha
+     and a1.code_action = 17
+   where a1.seq_action_log is null
+     and n.seq_netuney_tik_mechushavim is not null),
+e as
+ (select a.seq_prisha,
+         a.seq_bakasha,
+         a.code_sug_bakasha,
+         max(b.seq_bakasha) seq_bakasha_taarich_prisha,
+         max(c.seq_bakasha) seq_bakasha_code_seif_prisha,
+         a.seq_bakasha seq_bakasha_zakaut
+    from bakasha a
+    left join b
+      on a.seq_prisha = b.seq_prisha
+     and a.seq_bakasha > b.seq_bakasha
+    left join c
+      on a.seq_prisha = c.seq_prisha
+     and a.seq_bakasha > c.seq_bakasha
+   where a.code_sug_bakasha in (19, 20)
+   group by a.seq_prisha, a.seq_bakasha, a.code_sug_bakasha),
+f as
+ (select a.seq_prisha,
+         a.seq_bakasha,
+         a.code_sug_bakasha,
+         max(b.seq_bakasha) seq_bakasha_taarich_prisha,
+         max(c.seq_bakasha) seq_bakasha_code_seif_prisha,
+         max(d.seq_bakasha) seq_bakasha_zakaut
+    from bakasha a
+    left join code_sug_bakasha s
+      on s.code_sug_bakasha = a.code_sug_bakasha
+    left join b
+      on a.seq_prisha = b.seq_prisha
+     and a.seq_bakasha >= b.seq_bakasha
+    left join c
+      on a.seq_prisha = c.seq_prisha
+     and a.seq_bakasha >= c.seq_bakasha
+    left join d
+      on a.seq_prisha = d.seq_prisha
+     and a.seq_bakasha >= d.seq_bakasha
+   where (s.code_merge_bakasha is null and
+         a.code_sug_bakasha not in (19, 20))
+      or a.code_sug_bakasha in (13,14)
+   group by a.seq_prisha, a.seq_bakasha, a.code_sug_bakasha),
+g as
+ (select *
+    from e
+  union
+  select *
+    from f
+  union
+  select b.seq_prisha,
+         b.seq_bakasha,
+         b.code_sug_bakasha,
+         b.seq_bakasha      seq_bakasha_taarich_prisha,
+         b.seq_bakasha      seq_bakasha_code_seif_prisha,
+         b.seq_bakasha      seq_bakasha_zakaut
+    from bakasha b
+   where b.seq_bakasha not in (select seq_bakasha from e)
+     and b.seq_bakasha not in (select seq_bakasha from f))
+select distinct g."SEQ_PRISHA",g."SEQ_BAKASHA",g."CODE_SUG_BAKASHA",g."SEQ_BAKASHA_TAARICH_PRISHA",g."SEQ_BAKASHA_CODE_SEIF_PRISHA",g."SEQ_BAKASHA_ZAKAUT",
+       r_taarich_prisha.taarich_prisha,
+       r_code_seif_prisha.code_seif_prisha,
+       n.date_start_zakaut,
+       n.date_end_zakaut,
+       n.achuz_kizba_sofi,
+       n.chelkiyut_sofit,
+       n.is_zakai_lmaanak,
+       (case when n.odef_sherut_chodashim>0 or n.odef_sherut_yamim>0 then 1 else 0 end) as odef ,
+       decode(n1.seq_netuney_tik_mechushavim, null, 0, 1) is_exist_another_job,
+       n.tkufa_mezaka_sherut
+  from g
+  left join bakasha_regila r_taarich_prisha
+    on g.seq_bakasha_taarich_prisha = r_taarich_prisha.seq_bakasha
+  left join bakasha_regila r_code_seif_prisha
+    on g.seq_bakasha_code_seif_prisha = r_code_seif_prisha.seq_bakasha
+  left join netuney_tik_mechushavim n
+    on g.seq_bakasha_zakaut = n.seq_bakasha
+   and n.code_department = 2
+   and n.mispar_misra = 0
+    left join action_log a1
+      on a1.seq_bakasha = g.seq_bakasha
+     and a1.code_action = 17
+       left join netuney_tik_mechushavim n1
+    on g.seq_bakasha_zakaut = n1.seq_bakasha
+   and n1.code_department = 2
+   and n1.mispar_misra = 1
+
+ --  where a1.seq_action_log is null
+;
+
+
+create or replace force view prm_system_copy.v_bakasha_last_zakaut_new as
+with b as
+ (select b.seq_prisha, b.seq_bakasha
+    from bakasha b
+    left join action_log a1
+      on a1.seq_bakasha = b.seq_bakasha
+     and a1.code_action = 17
+   where a1.seq_action_log is null
+     and b.code_sug_bakasha in (1, 3, 5)),
+c as
+ (select b.seq_prisha, b.seq_bakasha
+    from bakasha b
+    left join code_sug_bakasha s
+      on s.code_sug_bakasha = b.code_sug_bakasha
+    left join action_log a1
+      on a1.seq_bakasha = b.seq_bakasha
+     and a1.code_action = 17
+   where a1.seq_action_log is null
+     and nvl(s.code_merge_bakasha, 0) = 1),
+d as
+ (select b.seq_prisha, b.seq_bakasha
+    from bakasha b
+    left join netuney_tik_mechushavim n
+      on b.seq_bakasha = n.seq_bakasha
+     and n.code_department = 2
+     and n.mispar_misra = 0
+    left join action_log a1
+      on a1.seq_bakasha = b.seq_bakasha
+     and a1.code_action = 17
+   where a1.seq_action_log is null
+     and n.seq_netuney_tik_mechushavim is not null),
+e as
+ (select a.seq_prisha,
+         a.seq_bakasha,
+         a.code_sug_bakasha,
+         max(b.seq_bakasha) seq_bakasha_taarich_prisha,
+         max(c.seq_bakasha) seq_bakasha_code_seif_prisha,
+         a.seq_bakasha seq_bakasha_zakaut
+    from bakasha a
+    left join b
+      on a.seq_prisha = b.seq_prisha
+     and a.seq_bakasha > b.seq_bakasha
+    left join c
+      on a.seq_prisha = c.seq_prisha
+     and a.seq_bakasha > c.seq_bakasha
+   where a.code_sug_bakasha in (19, 20)
+   group by a.seq_prisha, a.seq_bakasha, a.code_sug_bakasha),
+f as
+ (select a.seq_prisha,
+         a.seq_bakasha,
+         a.code_sug_bakasha,
+         max(b.seq_bakasha) seq_bakasha_taarich_prisha,
+         max(c.seq_bakasha) seq_bakasha_code_seif_prisha,
+         max(d.seq_bakasha) seq_bakasha_zakaut
+    from bakasha a
+    left join code_sug_bakasha s
+      on s.code_sug_bakasha = a.code_sug_bakasha
+    left join b
+      on a.seq_prisha = b.seq_prisha
+     and a.seq_bakasha > b.seq_bakasha
+    left join c
+      on a.seq_prisha = c.seq_prisha
+     and a.seq_bakasha > c.seq_bakasha
+    left join d
+      on a.seq_prisha = d.seq_prisha
+     and a.seq_bakasha > d.seq_bakasha
+   where (s.code_merge_bakasha is null and
+         a.code_sug_bakasha not in (19, 20))
+      or a.code_sug_bakasha = 13
+   group by a.seq_prisha, a.seq_bakasha, a.code_sug_bakasha),
+g as
+ (select *
+    from e
+  union
+  select *
+    from f
+  union
+  select b.seq_prisha,
+         b.seq_bakasha,
+         b.code_sug_bakasha,
+         b.seq_bakasha      seq_bakasha_taarich_prisha,
+         b.seq_bakasha      seq_bakasha_code_seif_prisha,
+         b.seq_bakasha      seq_bakasha_zakaut
+    from bakasha b
+   where b.seq_bakasha not in (select seq_bakasha from e)
+     and b.seq_bakasha not in (select seq_bakasha from f))
+select distinct g."SEQ_PRISHA",g."SEQ_BAKASHA",g."CODE_SUG_BAKASHA",g."SEQ_BAKASHA_TAARICH_PRISHA",g."SEQ_BAKASHA_CODE_SEIF_PRISHA",g."SEQ_BAKASHA_ZAKAUT",
+       r_taarich_prisha.taarich_prisha,
+       r_code_seif_prisha.code_seif_prisha,
+       n.date_start_zakaut,
+       n.date_end_zakaut
+  from g
+  left join bakasha_regila r_taarich_prisha
+    on g.seq_bakasha_taarich_prisha = r_taarich_prisha.seq_bakasha
+  left join bakasha_regila r_code_seif_prisha
+    on g.seq_bakasha_code_seif_prisha = r_code_seif_prisha.seq_bakasha
+  left join netuney_tik_mechushavim n
+    on g.seq_bakasha_zakaut = n.seq_bakasha
+   and n.code_department = 2
+   and n.mispar_misra = 0
+    left join action_log a1
+      on a1.seq_bakasha = g.seq_bakasha
+     and a1.code_action = 17
+   where a1.seq_action_log is null;
+
+
+create or replace force view prm_system_copy.v_bakasha_pass_on_not_complete as
+select b."CODE_SUG_BAKASHA",b."CODE_MAKOR",b."MISPAR_ZEHUT",b."TAARICH_PRISHA",b."SEQ_BAKASHA",b."SEQ_PRISHA",
+(t2.date_action) date_action,
+(t5.teur_action) teur_action,
+(t2.seq_action_log)seq_action_log,
+(t2.code_action) code_action
+,(t2.code_user_update) code_user_update
+,(t2.remarks) remarks
+,(t2.code_user_to_internal)code_user_to_internal
+,(t2.date_to_do) date_to_do
+,(t2.date_do)date_do
+,(t2.code_user_to_external) code_user_to_external
+,(t5.is_new)is_new
+from
+v_bakasha b
+left join action_log t2
+on b.seq_bakasha= t2.SEQ_BAKASHA
+left join action_log t3
+on t3.seq_action_log_prev = t2.seq_action_log
+left join code_action t5
+on t2.CODE_ACTION = t5.code_action
+left join v_bakasha_last_status t6
+on b.SEQ_BAKASHA=t6.seq_bakasha
+left join code_action t7
+on t6.code_action=t7.code_action
+where t2.code_action = 2
+and t3.date_do is null
+and t7.code_sug_action<>5;
+
 
 create or replace function prm_system_copy.f_get_taarich_tchula_murchav(p_seq_bakasha number,
                                                 p_teur_sug_bakasha out varchar2,
@@ -515,6 +1188,1421 @@ begin
   return(v_date_tchula);
 end;
 /
+
+create or replace force view prm_system_copy.v_bakashot_leshliha_lehilan as
+select /*+ optimizer_features_enable('11.2.0.4') */
+           t.seq_bakasha,
+           t.mispar_zehut,
+           p.shem_mishpacha,
+           p.shem_prati,
+           c.code_teur_bakasha,
+           f_get_taarich_tchula (t.seq_bakasha) taarich_tchula,
+           t.date_action,
+           t.code_sug_bakasha,
+           b.code_bakasha_detail,
+           cb.teur_bakasha_detail
+      FROM v_bakasha_last_status  t
+           LEFT JOIN code_sug_bakasha c
+               ON c.code_sug_bakasha = t.code_sug_bakasha
+           LEFT JOIN poresh p ON p.porshim_seq = t.seq_porshim
+           left join bakasha b on b.seq_bakasha = t.seq_bakasha
+           left join code_bakasha_detail cb on cb.code_bakasha_detail = b.code_bakasha_detail
+     WHERE     t.code_action = 134
+           AND TO_CHAR (f_get_taarich_tchula (t.seq_bakasha), 'YYYYMM') <=
+               TO_CHAR (SYSDATE, 'YYYYMM');
+
+
+create or replace force view prm_system_copy.v_bakashot_le_poresh as
+select count(*) count_bakashot,
+dates2.tkufa, dates2.sium, dates2.code_sug_bakasha_group, dates2.miun,
+(case when dates2.sium = 'end' and dates2.tkufa= 'month' then round(avg(dates2.end_date - dates2.begin_date),0)
+      else 0
+ end) average,
+(case when dates2.sium = 'end' and dates2.tkufa= 'month' then round(median(dates2.end_date - dates2.begin_date),0)
+      else 0
+ end) median
+from
+(select distinct dates1.seq_bakasha, dates1.begin_date, dates1.end_date,
+(case
+      when extract(year from dates1.end_date) = extract(year from sysdate) and
+           extract(month from dates1.end_date) <> extract(month from sysdate) then 'year'
+      when extract(year from dates1.end_date) = extract(year from sysdate) and
+           extract(month from dates1.end_date) = extract(month from sysdate) then 'month'
+      when dates1.end_date is null and dates1.bitul_date is null or
+           dates1.end_date is null and dates1.bitul_date < dates1.begin_date or
+           dates1.end_date < dates1.begin_date and dates1.bitul_date is null or
+           dates1.end_date < dates1.begin_date and dates1.bitul_date < dates1.begin_date then 'year' end) tkufa,
+(case
+      when extract(year from dates1.end_date) = extract(year from sysdate) then 'end'
+      when dates1.end_date is null and dates1.bitul_date is null or
+           dates1.end_date is null and dates1.bitul_date < dates1.begin_date or
+           dates1.end_date < dates1.begin_date and dates1.bitul_date is null or
+           dates1.end_date < dates1.begin_date and dates1.bitul_date < dates1.begin_date then 'treatment' end) sium,
+dates1.code_sug_bakasha_group,
+(case
+      when dates1.code_sug_bakasha_group = 'בקשות זכאות'
+      then 1
+      when dates1.code_sug_bakasha_group = 'מתוכם פורשים חדשים'
+      then 2
+      when dates1.code_sug_bakasha_group = 'בקשות השתתפות מגוף'
+      then 3
+      when dates1.code_sug_bakasha_group = 'בקשות השתתפות לגוף'
+      then 4
+      when dates1.code_sug_bakasha_group = 'בקשות קפ"מ'
+      then 5
+      end) miun
+from
+(select t.seq_bakasha,
+(select max(a1.date_action)
+     from action_log a1, code_sug_bakasha sb1
+     where a1.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb1.code_sug_bakasha
+     and a1.code_action = sb1.code_first_action_gimlaot
+     ) begin_date,
+(select max(a2.date_action)
+     from action_log a2, code_sug_bakasha sb2
+     where a2.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb2.code_sug_bakasha
+     and a2.code_action = sb2.code_action_confirm
+    ) end_date,
+(select max(a3.date_action)
+     from action_log a3
+     where a3.seq_bakasha = t.seq_bakasha
+     and (a3.code_action = 17 or a3.code_action=100)
+    ) bitul_date,
+(case
+   when b.code_sug_bakasha in (1,3,5) then 'בקשות זכאות'
+   when b.code_sug_bakasha = 7 then 'בקשות השתתפות מגוף'
+   when b.code_sug_bakasha = 8 then 'בקשות השתתפות לגוף'
+   when b.code_sug_bakasha in (10,11) then 'בקשות קפ"מ'
+ end) code_sug_bakasha_group
+ from action_log t, bakasha b
+ where t.seq_bakasha = b.seq_bakasha
+ and b.code_sug_bakasha in (1,3,5,7,8,10,11)
+ union
+select t.seq_bakasha,
+(select max(a1.date_action)
+     from action_log a1, code_sug_bakasha sb1
+     where a1.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb1.code_sug_bakasha
+     and a1.code_action = sb1.code_first_action_gimlaot
+     ) begin_date,
+(select max(a2.date_action)
+     from action_log a2, code_sug_bakasha sb2
+     where a2.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb2.code_sug_bakasha
+     and a2.code_action = sb2.code_action_confirm
+    ) end_date,
+(select max(a3.date_action)
+     from action_log a3
+     where a3.seq_bakasha = t.seq_bakasha
+     and (a3.code_action = 17 or a3.code_action=100)
+    ) bitul_date,
+ 'מתוכם פורשים חדשים' code_sug_bakasha_group
+ from action_log t, bakasha b
+ where t.seq_bakasha = b.seq_bakasha
+ and b.code_sug_bakasha = 1
+ order by seq_bakasha desc) dates1
+ where dates1.begin_date is not null)
+dates2
+where (dates2.sium = 'end' and dates2.end_date >= dates2.begin_date or dates2.sium = 'treatment')
+group by dates2.tkufa, dates2.sium, dates2.code_sug_bakasha_group, dates2.miun
+order by dates2.tkufa, dates2.sium, dates2.code_sug_bakasha_group, dates2.miun;
+
+
+create or replace force view prm_system_copy.v_bakashot_le_poresh_all as
+select t1.count_bakashot, t1.tkufa, t1.sium, t1.code_sug_bakasha_group, t1.miun, t1.average, t1.median
+from v_bakashot_le_poresh t1
+where not (t1.tkufa = 'year' and t1.sium = 'end')
+union
+select t2.count_bakashot, 'year', 'end', t2.code_sug_bakasha_group, t2.miun,
+t2.average, t2.median
+from v_bakashot_le_poresh_median t2;
+
+
+create or replace force view prm_system_copy.v_bakashot_le_poresh_median as
+select count(*) count_bakashot,
+dates2.code_sug_bakasha_group, dates2.miun,
+round(avg(dates2.end_date - dates2.begin_date),0) average,
+round(median(dates2.end_date - dates2.begin_date),0) median
+ from
+(select distinct dates1.seq_bakasha, dates1.begin_date, dates1.end_date,
+dates1.code_sug_bakasha_group,
+(case
+      when dates1.code_sug_bakasha_group = 'בקשות זכאות'
+      then 1
+      when dates1.code_sug_bakasha_group = 'מתוכם פורשים חדשים'
+      then 2
+      when dates1.code_sug_bakasha_group = 'בקשות השתתפות מגוף'
+      then 3
+      when dates1.code_sug_bakasha_group = 'בקשות השתתפות לגוף'
+      then 4
+      when dates1.code_sug_bakasha_group = 'בקשות קפ"מ'
+      then 5
+      end) miun
+from
+(select t.seq_bakasha,
+(select max(a1.date_action)
+     from action_log a1, code_sug_bakasha sb1
+     where a1.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb1.code_sug_bakasha
+     and a1.code_action = sb1.code_first_action_gimlaot
+     ) begin_date,
+(select max(a2.date_action)
+     from action_log a2, code_sug_bakasha sb2
+     where a2.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb2.code_sug_bakasha
+     and a2.code_action = sb2.code_action_confirm
+    ) end_date,
+(case
+   when b.code_sug_bakasha in (1,3,5) then 'בקשות זכאות'
+   when b.code_sug_bakasha = 7 then 'בקשות השתתפות מגוף'
+   when b.code_sug_bakasha = 8 then 'בקשות השתתפות לגוף'
+   when b.code_sug_bakasha in (10,11) then 'בקשות קפ"מ'
+ end) code_sug_bakasha_group
+ from action_log t, bakasha b
+ where t.seq_bakasha = b.seq_bakasha
+ and b.code_sug_bakasha in (1,3,5,7,8,10,11)
+ union
+select t.seq_bakasha,
+(select max(a1.date_action)
+     from action_log a1, code_sug_bakasha sb1
+     where a1.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb1.code_sug_bakasha
+     and a1.code_action = sb1.code_first_action_gimlaot
+     ) begin_date,
+(select max(a2.date_action)
+     from action_log a2, code_sug_bakasha sb2
+     where a2.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb2.code_sug_bakasha
+     and a2.code_action = sb2.code_action_confirm
+    ) end_date,
+ 'מתוכם פורשים חדשים' code_sug_bakasha_group
+ from action_log t, bakasha b
+ where t.seq_bakasha = b.seq_bakasha
+ and b.code_sug_bakasha = 1
+ order by seq_bakasha desc) dates1
+ where dates1.begin_date is not null
+ and extract(year from dates1.end_date) = extract(year from sysdate))
+dates2
+where (dates2.end_date >= dates2.begin_date)
+group by dates2.code_sug_bakasha_group, dates2.miun
+order by dates2.code_sug_bakasha_group, dates2.miun;
+
+
+create or replace force view prm_system_copy.v_bakashot_le_poresh_new as
+select count(*) count_bakashot,
+dates2.tkufa, dates2.sium, dates2.code_sug_bakasha_group, dates2.miun,
+(case when dates2.sium = 'end' then round(sum(dates2.end_date - dates2.begin_date),0)
+      else 0
+ end) sum_hefreshim
+ from
+(select distinct dates1.seq_bakasha, dates1.begin_date, dates1.end_date,
+(case
+      when extract(year from dates1.end_date) = extract(year from sysdate) and
+           extract(month from dates1.end_date) <> extract(month from sysdate) then 'year'
+      when extract(year from dates1.end_date) = extract(year from sysdate) and
+           extract(month from dates1.end_date) = extract(month from sysdate) then 'month'
+      when dates1.end_date is null and dates1.bitul_date is null or
+           dates1.end_date is null and dates1.bitul_date < dates1.begin_date or
+           dates1.end_date < dates1.begin_date and dates1.bitul_date is null or
+           dates1.end_date < dates1.begin_date and dates1.bitul_date < dates1.begin_date then 'year' end) tkufa,
+(case
+      when extract(year from dates1.end_date) = extract(year from sysdate) and
+           extract(month from dates1.end_date) <> extract(month from sysdate) then 'end'
+      when extract(year from dates1.end_date) = extract(year from sysdate) and
+           extract(month from dates1.end_date) = extract(month from sysdate) then 'end'
+       when dates1.end_date is null and dates1.bitul_date is null or
+           dates1.end_date is null and dates1.bitul_date < dates1.begin_date or
+           dates1.end_date < dates1.begin_date and dates1.bitul_date is null or
+           dates1.end_date < dates1.begin_date and dates1.bitul_date < dates1.begin_date then 'treatment' end) sium,
+dates1.code_sug_bakasha_group,
+(case
+      when dates1.code_sug_bakasha_group = 'פורשים חדשים'
+      then 1
+      when dates1.code_sug_bakasha_group = 'בקשות זכאות'
+      then 2
+      when dates1.code_sug_bakasha_group = 'בקשות השתתפות'
+      then 3
+      when dates1.code_sug_bakasha_group = 'בקשות קפ"מ'
+      then 4
+      end) miun
+from
+(select t.seq_bakasha,
+(select max(a1.date_action)
+     from action_log a1, code_sug_bakasha sb1
+     where a1.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb1.code_sug_bakasha
+     and a1.code_action = sb1.code_first_action_gimlaot
+     ) begin_date,
+(select max(a2.date_action)
+     from action_log a2, code_sug_bakasha sb2
+     where a2.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb2.code_sug_bakasha
+     and a2.code_action = sb2.code_action_confirm
+    ) end_date,
+(select max(a3.date_action)
+     from action_log a3
+     where a3.seq_bakasha = t.seq_bakasha
+     and (a3.code_action = 17 or a3.code_action=100)
+    ) bitul_date,
+(case
+   when b.code_sug_bakasha in (1,3,5) then 'בקשות זכאות'
+   when b.code_sug_bakasha in (7,8) then 'בקשות השתתפות'
+   when b.code_sug_bakasha in (10,11) then 'בקשות קפ"מ'
+ end) code_sug_bakasha_group
+ from action_log t, bakasha b
+ where t.seq_bakasha = b.seq_bakasha
+ and b.code_sug_bakasha in (1,3,5,7,8,10,11)
+ union
+select t.seq_bakasha,
+(select max(a1.date_action)
+     from action_log a1, code_sug_bakasha sb1
+     where a1.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb1.code_sug_bakasha
+     and a1.code_action = sb1.code_first_action_gimlaot
+     ) begin_date,
+(select max(a2.date_action)
+     from action_log a2, code_sug_bakasha sb2
+     where a2.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb2.code_sug_bakasha
+     and a2.code_action = sb2.code_action_confirm
+    ) end_date,
+(select max(a3.date_action)
+     from action_log a3
+     where a3.seq_bakasha = t.seq_bakasha
+     and (a3.code_action = 17 or a3.code_action=100)
+    ) bitul_date,
+ 'פורשים חדשים' code_sug_bakasha_group
+ from action_log t, bakasha b
+ where t.seq_bakasha = b.seq_bakasha
+ and b.code_sug_bakasha = 1
+ order by seq_bakasha desc) dates1
+ where dates1.begin_date is not null)
+dates2
+where (dates2.sium = 'end' and dates2.end_date >= dates2.begin_date or dates2.sium = 'treatment')
+group by dates2.tkufa, dates2.sium, dates2.code_sug_bakasha_group, dates2.miun
+order by dates2.tkufa, dates2.sium, dates2.code_sug_bakasha_group, dates2.miun;
+
+
+create or replace force view prm_system_copy.v_bakashot_le_poresh_rivon as
+select count(*) count_bakashot,
+dates2.code_sug_bakasha_group, dates2.miun, dates2.rivon_year, dates2.rivon_month_begin,
+round(avg(dates2.end_date - dates2.begin_date),0) average
+from
+(select distinct dates1.seq_bakasha, dates1.begin_date, dates1.end_date,
+(case
+      when extract(month from sysdate) between 1 and 3 then extract(year from sysdate) - 1
+      else extract(year from sysdate) end) rivon_year,
+(case
+      when extract(month from sysdate) between 1 and 3 then 10
+      when extract(month from sysdate) between 4 and 6 then 1
+      when extract(month from sysdate) between 7 and 9 then 4
+      when extract(month from sysdate) between 10 and 12 then 7 end) rivon_month_begin,
+dates1.code_sug_bakasha_group,
+(case
+      when dates1.code_sug_bakasha_group = 'פורשים חדשים'
+      then 1
+      when dates1.code_sug_bakasha_group = 'בקשות זכאות'
+      then 2
+      when dates1.code_sug_bakasha_group = 'בקשות השתתפות מגוף'
+      then 3
+      when dates1.code_sug_bakasha_group = 'בקשות השתתפות לגוף'
+      then 4
+      when dates1.code_sug_bakasha_group = 'בקשות קפ"מ'
+      then 5
+      end) miun
+from
+(select t.seq_bakasha,
+(select max(a1.date_action)
+     from action_log a1, code_sug_bakasha sb1
+     where a1.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb1.code_sug_bakasha
+     and a1.code_action = sb1.code_first_action_gimlaot
+     ) begin_date,
+(select max(a2.date_action)
+     from action_log a2, code_sug_bakasha sb2
+     where a2.seq_bakasha = t.seq_bakasha
+     and b.code_sug_bakasha = sb2.code_sug_bakasha
+     and a2.code_action = sb2.code_action_confirm
+    ) end_date,
+(select max(a3.date_action)
+     from action_log a3
+     where a3.seq_bakasha = t.seq_bakasha
+     and (a3.code_action = 17 or a3.code_action=100)
+    ) bitul_date,
+(case
+   when b.code_sug_bakasha in (1,3,5) then 'בקשות זכאות'
+   when b.code_sug_bakasha = 7 then 'בקשות השתתפות מגוף'
+   when b.code_sug_bakasha = 8 then 'בקשות השתתפות לגוף'
+   when b.code_sug_bakasha in (10,11) then 'בקשות קפ"מ'
+ end) code_sug_bakasha_group
+ from action_log t, bakasha b
+ where t.seq_bakasha = b.seq_bakasha
+ and b.code_sug_bakasha in (1,3,5,7,8,10,11)
+ order by seq_bakasha desc) dates1
+ where dates1.begin_date is not null)
+dates2
+where dates2.end_date >= dates2.begin_date
+and dates2.end_date >= to_date(to_char(dates2.rivon_year)||'/'||to_char(dates2.rivon_month_begin)||'/01','yyyy/mm/dd')
+and dates2.end_date < to_date(to_char(dates2.rivon_year)||'/'||to_char(dates2.rivon_month_begin + 3)||'/01','yyyy/mm/dd')
+group by dates2.code_sug_bakasha_group, dates2.miun, dates2.rivon_year, dates2.rivon_month_begin
+order by dates2.code_sug_bakasha_group, dates2.miun,  dates2.rivon_year, dates2.rivon_month_begin;
+
+
+create or replace force view prm_system_copy.v_bank_account as
+select t."SEQ_BANK_ACCOUNT",
+t."SEQ_BNEY_MISHPACHA",
+t."SEQ_BAKASHA",
+t."CODE_BANK",
+t."CODE_SNIF",
+t."ACCOUNT_NUMBER",
+t."DATE_UPDATE",
+t."USER_UPDATE",
+v.seq_porshim,
+v.is_active,
+v.gimla_number
+from bank_account t
+left join v_bakasha_last_status v on
+t.seq_bakasha = v.seq_bakasha;
+
+
+create or replace force view prm_system_copy.v_bank_account_chinuch as
+select t."SEQ_BANK_ACCOUNT",
+t."SEQ_BNEY_MISHPACHA",
+t."SEQ_BAKASHA",
+t."CODE_BANK",
+t."CODE_SNIF",
+t."ACCOUNT_NUMBER",
+t."DATE_UPDATE",
+t."USER_UPDATE",
+v.seq_porshim,
+v.is_active
+from bank_account_chinuch t
+left join v_bakasha_last_status v on
+t.seq_bakasha = v.seq_bakasha;
+
+
+CREATE OR REPLACE FORCE VIEW PRM_SYSTEM_COPY.V_BATCH_PORTION_PR AS
+SELECT
+--Logist batch portion process information to be used by the batch control UI'
+--150805 transferred from sybase 150805 by Lilya.
+BATCH_PORTION_PR.BATCH_ID, BATCH_PORTION_PR.PORTION_ID,
+BATCH_PORTION_PR.STATUS, TOTAL_ITEMS, TOTAL_SPLIT_ITEMS, REJECTED_ITEMS,
+MACHINE_ID, BATCH_FILE_PATH,
+(select min(START_DATE) from BATCH_PORTION_STAGE_PR
+  where BATCH_PORTION_STAGE_PR.BATCH_ID = BATCH_PORTION_PR.BATCH_ID
+   and BATCH_PORTION_STAGE_PR.PORTION_ID = BATCH_PORTION_PR.PORTION_ID),
+(select max(END_DATE) from BATCH_PORTION_STAGE_PR
+where BATCH_PORTION_STAGE_PR.BATCH_ID = BATCH_PORTION_PR.BATCH_ID
+and BATCH_PORTION_STAGE_PR.PORTION_ID = BATCH_PORTION_PR.PORTION_ID)
+FROM BATCH_PORTION_PR
+;
+
+
+CREATE OR REPLACE FORCE VIEW PRM_SYSTEM_COPY.V_BATCH_PORTION_STAGE_PR AS
+SELECT
+--150805 transferred from sybase 150805 by Lilya.
+BATCH_PORTION_STAGE_PR.STAGE_NAME, STAGE_DESCRIPTION, BATCH_ID, PORTION_ID, STAGE_INDEX, START_DATE, END_DATE, START_WAIT_DATE, END_WAIT_DATE, START_WORK_DATE, END_WORK_DATE, STATUS, ERROR_DESCRIPTION_CODE, ERROR_DESCRIPTION
+FROM BATCH_PORTION_STAGE_NAME, BATCH_PORTION_STAGE_PR
+where BATCH_PORTION_STAGE_NAME.STAGE_NAME = BATCH_PORTION_STAGE_PR.STAGE_NAME
+and status <> 'WORKING' and status <> 'STOPING'
+union
+SELECT BATCH_PORTION_STAGE_PR.STAGE_NAME, STAGE_DESCRIPTION, BATCH_ID, PORTION_ID, STAGE_INDEX, START_DATE, sysdate, START_WAIT_DATE, END_WAIT_DATE, START_WORK_DATE, END_WORK_DATE, STATUS, ERROR_DESCRIPTION_CODE, ERROR_DESCRIPTION
+FROM BATCH_PORTION_STAGE_NAME, BATCH_PORTION_STAGE_PR
+where BATCH_PORTION_STAGE_NAME.STAGE_NAME = BATCH_PORTION_STAGE_PR.STAGE_NAME
+and status = 'WORKING' or status = 'STOPING'
+;
+
+
+CREATE OR REPLACE FORCE VIEW PRM_SYSTEM_COPY.V_BATCH_PR AS
+SELECT
+--  'Logist batch process information to be used by the batch control UI'
+-- 150805 transferred from sybase 150805 by Lilya.
+sum(TOTAL_ITEMS) TOTAL_ITEMS, sum(TOTAL_SPLIT_ITEMS)TOTAL_SPLIT_ITEMS,
+ sum(REJECTED_ITEMS)REJECTED_ITEMS, BATCH_PR.BATCH_ID,
+  BATCH_DESCRIPTION, BATCH_PR.STATUS, KNOWLEDGE_DOMAIN,
+  KNOWLEDGE_SUB_DOMAIN, ENV_FILE, RULES_SOURCE, TAPE_PREFIX,
+   BATCH_PR.BATCH_FILE_PATH, PORTIONS,
+(SELECT count(*) REJECTED_PORTIONS FROM BATCH_PORTION_PR b
+where REJECTED_ITEMS > 0 and STATUS  ='OK' and b.BATCH_ID = BATCH_PR.BATCH_ID),
+(SELECT count(*) FAILED_PORTIONS
+FROM BATCH_PORTION_PR a
+where STATUS in('FAILED','failed','Failed') and a.BATCH_ID = BATCH_PR.BATCH_ID),
+(SELECT count(*) STOPPED_PORTIONS
+FROM BATCH_PORTION_PR a
+where STATUS in('STOPPED','stopped','Stopped') and a.BATCH_ID = BATCH_PR.BATCH_ID),
+(SELECT count(*)
+FROM BATCH_PORTION_PR c
+where STATUS  ='OK' and c.BATCH_ID = BATCH_PR.BATCH_ID),
+ BATCH_FILE_SIZE, BATCH_PR.MACHINE_ID, BATCH_PR.START_DATE, max(END_DATE) END_DATE, EXTRACT_DATE
+FROM v_BATCH_PORTION_PR, BATCH_PR
+where BATCH_PR.BATCH_ID = v_BATCH_PORTION_PR.BATCH_ID
+group by BATCH_PR.BATCH_ID, BATCH_DESCRIPTION, BATCH_PR.STATUS, KNOWLEDGE_DOMAIN, KNOWLEDGE_SUB_DOMAIN, ENV_FILE, RULES_SOURCE, TAPE_PREFIX, BATCH_PR.BATCH_FILE_PATH, PORTIONS, BATCH_FILE_SIZE, BATCH_PR.MACHINE_ID, BATCH_PR.START_DATE, EXTRACT_DATE
+union
+(SELECT 0, 0, 0, BATCH_PR.BATCH_ID, BATCH_DESCRIPTION, BATCH_PR.STATUS, KNOWLEDGE_DOMAIN, KNOWLEDGE_SUB_DOMAIN, ENV_FILE, RULES_SOURCE, TAPE_PREFIX, BATCH_PR.BATCH_FILE_PATH, PORTIONS,
+0,0,0,0,
+BATCH_FILE_SIZE, BATCH_PR.MACHINE_ID, BATCH_PR.START_DATE, null, EXTRACT_DATE
+FROM  BATCH_PR
+where not exists( select * from batch_portion_PR WHERE BATCH_PR.BATCH_ID=BATCH_PORTION_PR.BATCH_ID))
+;
+
+
+create or replace force view prm_system_copy.v_chinuch_reforma as
+select t.seq_bakasha,t.code_reforma,a.teur_chinuch_reforma,t.begin_date,t.months_a,t.factor ,t.code_chinuch_alterntive,
+trim(a.teur_chinuch_reforma) || ' - מ ' ||   to_char(t.begin_date,'DD/MM/YYYY') || ' - ' || to_char (t.months_a) || ' חודשים '
+ || ' - '  || ' משקולת ' || to_char(t.factor,90.99999)  || '   ' || '  חלופה נבחרת: '|| f.teur_chinuch_alterntive    text,t.seq_chinuch_reforma
+from chinuch_reforma t
+left join code_chinuch_reforma a on t.code_reforma=a.code_chinuch_reforma
+left join code_chinuch_alterntive f on f.code_chinuch_alterntive=t.code_chinuch_alterntive;
+
+
+create or replace force view prm_system_copy.v_code_bank as
+select
+b.code_bank, b.code_bank || ' | ' || b.teur_bank as teur_bank
+from code_bank b
+order by b.code_bank;
+
+
+create or replace force view prm_system_copy.v_code_darga as
+select a.code_darga,a.teur_darga,a.code_derug, A.CODE_DARGA || '
+- ' || a.teur_darga as darga from code_dARGA a where a.pail=1;
+
+
+create or replace force view prm_system_copy.v_code_derug as
+select a.code_derug,a.teur_derug, a.code_derug || '
+- ' || a.teur_derug as derug from code_derug a where a.pail=1;
+
+
+create or replace force view prm_system_copy.v_code_derug_pail as
+select t.code_derug,t.teur_derug,t.pail
+ from code_derug t
+ where exists(select 1 from code_darga t1 where t1.code_derug=t.code_derug and t1.pail = 1)
+ order by t.teur_derug;
+
+
+create or replace force view prm_system_copy.v_code_kirva_sp as
+select T.CODE_KIRVA,T.TEUR_KIRVA
+   from CODE_KIRVA t
+   where t.code_kirva in(1,2,14)AND T.PAIL=1;
+
+
+create or replace force view prm_system_copy.v_code_mkdmt_hchltt_hchlta as
+select t.code_sug_hachlata,t.teur_sug_hachlata,t.code_sug_hachlata ||' '||t.teur_sug_hachlata as code_v_teur from code_mkdmt_hchltt_sug_hchlta t;
+
+
+create or replace force view prm_system_copy.v_code_mkdmt_hchltt_rmt_msr as
+select t.code_ramat_misra,t.teur_ramat_misra,t.code_ramat_misra ||' '||t.teur_ramat_misra as code_v_teur from code_mkdmt_hchltt_rmt_msra t;
+
+
+create or replace force view prm_system_copy.v_code_participation_gufim as
+select t.code_participation, t.teur_participation
+    from code_participation t
+    where t.code_participation in(1,2,5,6);
+
+
+create or replace force view prm_system_copy.v_code_seif_prisha as
+select t.code_seif_markava,t.teur_seif_prisha,t.pail,t.code_seif_prisha,t.code_seif_prisha ||' - '||t.teur_seif_prisha as code_v_teur from code_seif_prisha t;
+
+
+create or replace force view prm_system_copy.v_code_seif_prisha_sp as
+select t.code_seif_markava,t.teur_seif_prisha,t.pail,t.code_seif_prisha,t.code_seif_prisha ||' - '||t.teur_seif_prisha as code_v_teur from code_seif_prisha t
+  where t.code_seif_prisha in(128,228,328,428,528,162);
+
+
+create or replace force view prm_system_copy.v_code_semel_tosefet as
+select
+b.code_semel_tosefet, b.code_semel_tosefet || ' - ' || b.teur_tosefet as teur_tosefet,b.sug_natun,b.code_chinuch_alterntive,b.code_reforma
+from CODE_SEMEL_TOSEFET b
+where b.semel_hilan>0
+order by b.code_semel_tosefet;
+
+
+create or replace force view prm_system_copy.v_code_snif_bank as
+select
+b.code_bank,b.code_snif_bank, b.code_snif_bank || ' | ' || b.teur_snif_bank as teur_snif_bank
+from code_snif_bank b
+where b.pail = 1
+order by b.code_snif_bank;
+
+
+create or replace force view prm_system_copy.v_code_snif_bank_all as
+select
+b.code_bank,b.code_snif_bank, b.code_snif_bank || ' | ' || b.teur_snif_bank as teur_snif_bank, b.pail
+from code_snif_bank b
+--where b.pail = 1
+order by b.code_snif_bank
+;
+
+
+create or replace force view prm_system_copy.v_code_sug_workflow as
+select a.code_sug_workflow, a.code_sug_workflow || ' - ' || a.teur_sug_workflow as teur from CODE_SUG_WORKFLOW a order by a.code_sug_workflow;
+
+
+create or replace force view prm_system_copy.v_code_user as
+select t.id_user,t.shem_prati||' '||t.shem_mishpacha as shem , t.pail_lo_pail, t2.code_role ,t2.code_department,t.is_programmer
+from code_user t
+left join perm_user_role t1 on t.id_user = t1.code_user and t1.main_roll = 1
+left join code_role t2 on t1.code_role = t2.code_role
+where (t1.main_roll = 1 or t1.main_roll is null);
+
+
+create or replace force view prm_system_copy.v_code_user_all_roles as
+select distinct t.id_user,t.shem_prati||' '||t.shem_mishpacha as shem , t.pail_lo_pail, t2.code_role , t2.teur_role, t2.code_department
+from code_user t
+left join perm_user_role t1 on t.id_user = t1.code_user/* and t1.main_roll = 1*/
+left join code_role t2 on t1.code_role = t2.code_role
+where t.is_programmer = 0
+and t.pail_lo_pail = 1;
+
+
+create or replace force view prm_system_copy.v_code_user_external as
+select t.seq_contacts_ministries,t.first_name||' '||t.last_name as shem from contacts_ministries t;
+
+
+create or replace force view prm_system_copy.v_delayed_tikim as
+select   p.mispar_zehut,e.teur_ezor_ovdim,t.DATE_ACTION,t.TEUR_ACTION,'Y' as in_system,t.SEQ_BAKASHA,'D' as delayed_Type,p1.SEQ_EZOR_OVDIM
+  from v_regila_curnt_action t
+  left join bakasha b
+  on t.seq_bakasha = b.seq_bakasha
+  left join prisha p1
+  on b.seq_prisha = p1.seq_prisha
+  left join poresh p on p1.seq_prisha=p.porshim_seq
+  left join code_ezor_ovdim e
+  on p1.SEQ_EZOR_OVDIM = e.seq_ezor_ovdim
+  where t.CODE_ACTION in (1,2,20,19)
+    union all
+  select zehut, e.teur_ezor_ovdim, date_rejected,  reason_varchar, in_system, SEQ_BAKASHA ,'R' as delayed_Type ,r.SEQ_EZOR_OVDIM
+  from v_all_rejected_tikim r
+    left join code_ezor_ovdim e
+  on r.SEQ_EZOR_OVDIM = e.seq_ezor_ovdim;
+
+
+create or replace force view prm_system_copy.v_departmentsandrols_for_users as
+select distinct d.teur_department, d.code_department, u.id_user,u.shem_prati || ' ' || u.shem_mishpacha shem, u.is_programmer
+,r.code_role, u.shem_prati || ' ' || u.shem_mishpacha || ' (' ||  u.id_user ||')' userName,u.pail_lo_pail
+from code_user u
+left join perm_user_role ur
+     on u.id_user = ur.code_user
+left join code_role r
+     on r.code_role = ur.code_role
+left join code_department d
+     on d.code_department = r.code_department
+order by u.id_user, d.code_department;
+
+
+create or replace force view prm_system_copy.v_departments_for_users as
+select distinct d.teur_department, d.code_department, u.id_user,u.shem_prati || ' ' || u.shem_mishpacha shem, u.is_programmer, d.code_yechida
+from code_user u
+left join perm_user_role ur
+     on u.id_user = ur.code_user
+left join code_role r
+     on r.code_role = ur.code_role
+left join code_department d
+     on d.code_department = r.code_department
+where d.code_yechida in (1,4) --בשימוש רק בחלון ניתוב תיקים view-כל עוד ה
+order by u.id_user, d.code_department
+;
+
+
+create or replace force view prm_system_copy.v_differences_derug_darga as
+select distinct br1.seq_bakasha seq_bakasha_current,
+cd1.teur_derug teur_derug_display,
+cda1.teur_darga teur_darga_display,
+br1.vetek vetek_display,
+decode(nvl(br1.chinuch_mikzoa,-1),-1,br1.teur_misra_acharon,ccm1.teur_chinuch_mikzoa) mikzoa_display,
+br2.seq_bakasha seq_bakasha_prev,
+cd2.teur_derug teur_derug_tooltip,
+cda2.teur_darga teur_darga_tooltip,
+br2.vetek vetek_tooltip,
+decode(nvl(br2.chinuch_mikzoa,-1),-1,br2.teur_misra_acharon,ccm2.teur_chinuch_mikzoa) mikzoa_tooltip
+from
+(select b1.seq_bakasha seq_current,
+               --Get seq_prev
+               (select max(b2.seq_bakasha)
+                  from bakasha b2
+                  left join code_sug_bakasha csb2
+                    on b2.code_sug_bakasha = csb2.code_sug_bakasha
+                 where csb2.code_merge_bakasha = csb1.code_merge_bakasha
+                   and b2.seq_prisha = b1.seq_prisha
+                   and b2.seq_bakasha < b1.seq_bakasha) seq_prev
+          from bakasha b1
+          left join code_sug_bakasha csb1
+            on b1.code_sug_bakasha = csb1.code_sug_bakasha) seq
+left join bakasha_regila br1
+on br1.seq_bakasha = seq.seq_current
+left join darga_vederug_tik d1
+on br1.seq_bakasha = d1.seq_bakasha
+left join code_derug cd1
+on d1.code_derug = cd1.code_derug
+left join code_darga cda1
+on  d1.code_derug = cda1.code_derug
+and d1.code_darga = cda1.code_darga
+left join code_chinuch_mikzoa ccm1
+on ccm1.code_chinuch_mikzoa = br1.chinuch_mikzoa
+left join bakasha_regila br2
+on br2.seq_bakasha = seq.seq_prev
+left join darga_vederug_tik d2
+on br2.seq_bakasha = d2.seq_bakasha
+left join code_derug cd2
+on d2.code_derug = cd2.code_derug
+left join code_darga cda2
+on  d2.code_derug = cda2.code_derug
+and d2.code_darga = cda2.code_darga
+left join code_chinuch_mikzoa ccm2
+on ccm2.code_chinuch_mikzoa = br2.chinuch_mikzoa
+where nvl(d1.taarich_me,to_date('01/01/1900','DD/MM/YYYY')) = (select max(nvl(d.taarich_me,to_date('01/01/1900','DD/MM/YYYY')))
+                     from darga_vederug_tik d
+                     where d.seq_bakasha = br1.seq_bakasha)
+and nvl(d2.taarich_me,to_date('01/01/1900','DD/MM/YYYY')) = (select max(nvl(d.taarich_me,to_date('01/01/1900','DD/MM/YYYY')))
+                     from darga_vederug_tik d
+                     where d.seq_bakasha = br2.seq_bakasha)
+and not br1.seq_bakasha is null
+and not br2.seq_bakasha is null
+union
+select distinct seq.seq_current,
+cd.teur_derug, cda.teur_darga, br.vetek,
+decode(nvl(br.chinuch_mikzoa,-1),-1,br.teur_misra_acharon,ccm.teur_chinuch_mikzoa),
+seq.seq_prev, null, null, null, null
+from
+(select b1.seq_bakasha seq_current,
+               --Get seq_prev
+               (select max(b2.seq_bakasha)
+                  from bakasha b2
+                  left join code_sug_bakasha csb2
+                    on b2.code_sug_bakasha = csb2.code_sug_bakasha
+                 where csb2.code_merge_bakasha = csb1.code_merge_bakasha
+                   and b2.seq_prisha = b1.seq_prisha
+                   and b2.seq_bakasha < b1.seq_bakasha) seq_prev
+  from bakasha b1
+          left join code_sug_bakasha csb1
+            on b1.code_sug_bakasha = csb1.code_sug_bakasha) seq
+left join bakasha_regila br
+on br.seq_bakasha = seq.seq_current
+left join darga_vederug_tik d
+on br.seq_bakasha = d.seq_bakasha
+left join code_derug cd
+on d.code_derug = cd.code_derug
+left join code_darga cda
+on  d.code_derug = cda.code_derug
+and d.code_darga = cda.code_darga
+left join code_chinuch_mikzoa ccm
+on ccm.code_chinuch_mikzoa = br.chinuch_mikzoa
+where seq.seq_prev is null
+and nvl(d.taarich_me,to_date('01/01/1900','DD/MM/YYYY')) = (select max(nvl(dd.taarich_me,to_date('01/01/1900','DD/MM/YYYY')))
+                     from darga_vederug_tik dd
+                     where dd.seq_bakasha = br.seq_bakasha)
+order by seq_bakasha_current desc
+;
+
+
+create or replace force view prm_system_copy.v_document as
+select "SEQ_DOCUMENT","SEQ_DOCUMENT_TYPE","DOCUMENT_URL","TEUR","DATE_UPDATE","CODE_USER","REMARKS","DATE_CREATE","PAGE_COUNT","SOURCE_DOCUMENT_ID","IS_EXIST","IS_SAME","IS_VALID_DATA","CODE_DOCUMENT_DIRECTION","CODE_ROLE","CODE_DEPARTMENT","ID_ARCHIVE","SOURCE_TYPE","DOCUMENT_MAOR_URL"
+    from document d
+    where d.date_update is not null;
+
+
+create or replace force view prm_system_copy.v_document_types_for_department as
+select t.seq_document_type,b.teur_document_type,t.code_department,b.code_archiv from PERM_DOCUMENT_BY_BAKASHA t,code_document_type b
+where  t.seq_document_type=b.seq_document_type
+group by t.seq_document_type,b.teur_document_type, t.code_department,b.code_archiv
+order by t.seq_document_type;
+
+
+create or replace force view prm_system_copy.v_doc_sug_bakasha_for_sug_mismach as
+select t.code_sug_bakasha,(CASE WHEN t.code_sug_bakasha=99 THEN 'לתיוק בלבד' ELSE b.code_teur_bakasha END) code_teur_bakasha ,t.seq_document_type,t.code_department
+from PERM_DOCUMENT_BY_BAKASHA t,code_sug_bakasha b
+where  t.code_sug_bakasha=b.code_sug_bakasha
+group by t.code_sug_bakasha,b.code_teur_bakasha, t.seq_document_type,t.code_department
+order by t.code_sug_bakasha;
+
+
+create or replace force view prm_system_copy.v_ezor_ovdim_category as
+select e.code_sug_ezor_ovdim, e.seq_ezor_ovdim,e1.teur_ezor_ovdim as teur_ezor_ovdim_short , e1.pail
+, e1.teur_ezor_ovdim ||' ('||e1.code_ezor_ovdim||')' AS teur_AND_CODE_ezor_ovdim
+  from ezor_ovdim_category e
+  left join code_ezor_ovdim e1
+    on e.seq_ezor_ovdim  = e1.seq_ezor_ovdim;
+
+
+create or replace force view prm_system_copy.v_ezor_ovdim_category_vpd as
+select e.code_sug_ezor_ovdim, e.seq_ezor_ovdim,e1.teur_ezor_ovdim as teur_ezor_ovdim_short, e1.pail
+, e1.teur_ezor_ovdim ||' ('||e1.code_ezor_ovdim||')' AS teur_AND_CODE_ezor_ovdim
+  from ezor_ovdim_category e
+  left join code_ezor_ovdim e1
+    on e.seq_ezor_ovdim  = e1.seq_ezor_ovdim;
+
+
+create or replace force view prm_system_copy.v_ezor_ovdim_hilan as
+select c.seq_ezor_ovdim
+        from ezor_ovdim_category c
+        left join ezor_ovdim_category c_sec
+          on c_sec.seq_ezor_ovdim = c.seq_ezor_ovdim
+         and c_sec.code_sug_ezor_ovdim = 8
+        left join ezor_ovdim_category c_sec_h
+          on c_sec_h.seq_ezor_ovdim = c.seq_ezor_ovdim
+         and c_sec_h.code_sug_ezor_ovdim = 14
+
+       where 1 = 1
+         and (c_sec.seq_ezor_ovdim_category is null or c_sec_h.seq_ezor_ovdim_category is not null);
+
+
+create or replace force view prm_system_copy.v_ezor_ovdim_participation_guf as
+select t."SEQ_EZOR_OVDIM_CATEGORY",t."SEQ_EZOR_OVDIM",t."CODE_SUG_EZOR_OVDIM" ,t1.teur_ezor_ovdim,t1.pail
+from EZOR_OVDIM_CATEGORY t
+left join code_ezor_ovdim t1
+on t.seq_ezor_ovdim = t1.seq_ezor_ovdim
+  where t.code_sug_ezor_ovdim in(1,3,5,6,16);
+
+
+create or replace force view prm_system_copy.v_ezor_ovdim_yadani as
+select code_makor, code_ezor_ovdim, teur_ezor_ovdim, seq_ezor_ovdim, pail, icon, code_misrad_maskret, color, teur_ezor_ovdim_short
+   from code_ezor_ovdim t
+   where t.code_makor <> 3 and t.pail=1
+   order by code_makor desc,t.teur_ezor_ovdim;
+
+
+create or replace force view prm_system_copy.v_fields_changed as
+select base.v_log_user code_user,
+       base.date_action,
+       1 as code_action,
+       'שדה ''' || decode(t2.comments, null, base.field_name, t2.comments) ||
+       ''' מטבלת ''' || decode(t1.comments, null, base.table_name, t1.comments) ||
+       ''' עודכן מערך: ' || base.v_field_old_value || ' לערך: ' ||
+       base.v_field_new_value remark
+
+  from (select t.v_log_user,
+               to_date(t.v_log_date || ' ' || t.v_log_time,
+                       'yyyymmdd hh24:mi:ss') date_action,
+               substr(t.v_field_db_name,
+                      0,
+                      INSTR(t.v_field_db_name, '.') - 1) table_Name,
+               substr(t.v_field_db_name, INSTR(t.v_field_db_name, '.') + 1) field_Name,
+               t.v_field_old_value,
+               t.v_field_new_value
+          from adt_system.V_LOG_FIELDS_QUERY t
+         where t.v_variable_type = 'R'
+           and t.v_field_old_value <> t.v_field_new_value) base
+  left join user_tab_comments t1
+    on upper(base.table_Name) = upper(t1.table_name)
+  left join user_col_comments t2
+    on upper(base.table_Name) = upper(t2.table_name)
+   and upper(base.field_Name) = upper(t2.column_name);
+
+
+create or replace force view prm_system_copy.v_first_action_from_nasham as
+select a.code_action, a.teur_action, firsts.code_sug_workflow
+from WORKFLOW t, code_action a,
+(select a1.code_department, t1.code_sug_workflow, min(t1.order_wf) order_wf
+from WORKFLOW t1, code_action a1
+where t1.next_action=a1.code_action
+and a1.code_department=1
+and not(step is null)
+group by a1.code_department, t1.code_sug_workflow
+order by t1.code_sug_workflow) firsts
+where t.code_sug_workflow = firsts.code_sug_workflow
+and t.order_wf = firsts.order_wf
+and a.code_action = t.next_action;
+
+
+create or replace force view prm_system_copy.v_gimlaey_heskem as
+select distinct case when pr.mispar_zehut is not null then 'poresh' else 'sheer' end sug_gimlay,
+p.mispar_zehut, p.mispar_zehut_manoah,
+case when pr.mispar_zehut is not null then pr.shem_prati else b.shem_prati end shem_prati,
+case when pr.mispar_zehut is not null then pr.shem_mishpacha else b.shem_mishpacha end shem_mishpacha,
+v.seq_bakasha,
+pr.mispar_zehut mispar_zehut_poresh, b.mispar_zehut_ben_mishpacha,
+v.gimla_number, v.seq_prisha, v.taarich_prisha,  c.code_teur_bakasha, b.code_kirva,
+nvl(n.is_zakai_lmaanak,0) is_zakai_lmaanak,
+nvl(n.ahuz_kizb_achry_hagdl_kaf_chel,0) ahuz_kizb_achry_hagdl_kaf_chel,
+nvl(n.achuz_kizba_sofi,0) achuz_kizba_sofi,
+case when nvl(n.odef_sherut_chodashim,0) > 0 or nvl(n.odef_sherut_yamim,0) > 0 or nvl(n.odef_sherut_shanim,0) > 0 then 1 else 0 end is_zakai_lepizuim,
+n.odef_sherut_chodashim, n.odef_sherut_yamim, n.odef_sherut_shanim, nvl(n.code_group_prisha,0) code_group_prisha,
+case when (select a.seq_bakasha
+            from action_log a
+            where a.seq_bakasha = v.seq_bakasha
+            and a.code_action = 145) > 0 then 'הסבה ממל"מ'
+when (select a.seq_bakasha
+            from action_log a
+            where a.seq_bakasha = v.seq_bakasha
+            and a.code_action = 99) > 0 then 'הסבה ממג"ל'
+else 'חושב במפ"מ' end makor_netunim,
+(select count(*)
+from bakasha bk
+left join netuney_tik_mechushavim nbk on
+nbk.seq_bakasha = bk.seq_bakasha
+where bk.code_sug_bakasha = 1
+and bk.seq_prisha = v.seq_prisha
+and nbk.code_department = 2
+and nbk.code_group_prisha = 4
+/*and p.mispar_zehut_manoah <> 0
+and nvl(b.mispar_zehut_ben_mishpacha,0) <> 0*/
+) ptira_be_sherut
+from porshim_not_send_to_hilan p
+left join poresh pr on
+pr.mispar_zehut = p.mispar_zehut and p.mispar_zehut_manoah = 0
+left join bney_mishpacha b on
+b.mispar_zehut_ben_mishpacha = p.mispar_zehut and p.mispar_zehut_manoah <> 0
+left join v_bakasha_last_status v on
+v.mispar_zehut = p.mispar_zehut and p.mispar_zehut_manoah = 0 or
+v.mispar_zehut = p.mispar_zehut_manoah and p.mispar_zehut_manoah <> 0
+left join netuney_tik_mechushavim n on
+n.seq_bakasha = v.seq_bakasha
+and n.code_department = 2
+left join code_sug_bakasha c on
+c.code_sug_bakasha = v.code_sug_bakasha
+left join bney_mishpacha b on
+b.mispar_zehut_ben_mishpacha = p.mispar_zehut and p.mispar_zehut_manoah <> 0
+where v.seq_ezor_ovdim = 206
+and p.taarich_bitul is null
+and v.code_action in (98,145)
+and v.code_sug_bakasha in (1,5,3)
+order by 1,2,3;
+
+
+create or replace force view prm_system_copy.v_gimlaey_heskem_vetek as
+select distinct case when pr.mispar_zehut is not null then 'poresh' else 'sheer' end sug_gimlay,
+p.mispar_zehut, p.mispar_zehut_manoah,
+case when pr.mispar_zehut is not null then pr.shem_prati else b.shem_prati end shem_prati,
+case when pr.mispar_zehut is not null then pr.shem_mishpacha else b.shem_mishpacha end shem_mishpacha,
+v.seq_bakasha,
+pr.mispar_zehut mispar_zehut_poresh, b.mispar_zehut_ben_mishpacha,
+v.gimla_number, v.seq_prisha, v.taarich_prisha,  c.code_teur_bakasha, b.code_kirva,
+case when (select a.seq_bakasha
+            from action_log a
+            where a.seq_bakasha = v.seq_bakasha
+            and a.code_action = 145) > 0 then 'הסבה ממל"מ'
+when (select a.seq_bakasha
+            from action_log a
+            where a.seq_bakasha = v.seq_bakasha
+            and a.code_action = 99) > 0 then 'הסבה ממג"ל'
+else 'חושב במפ"מ' end makor_netunim,
+d.code_type_vetek, d.years, n.seq_netuney_sachar,
+(select count(*)
+from bakasha bk
+left join netuney_tik_mechushavim nbk on
+nbk.seq_bakasha = bk.seq_bakasha
+where bk.code_sug_bakasha = 1
+and bk.seq_prisha = v.seq_prisha
+and nbk.code_department = 2
+and nbk.code_group_prisha = 4
+/*and p.mispar_zehut_manoah <> 0
+and nvl(b.mispar_zehut_ben_mishpacha,0) <> 0*/
+) ptira_be_sherut
+from porshim_not_send_to_hilan p
+left join poresh pr on
+pr.mispar_zehut = p.mispar_zehut and p.mispar_zehut_manoah = 0
+left join bney_mishpacha b on
+b.mispar_zehut_ben_mishpacha = p.mispar_zehut and p.mispar_zehut_manoah <> 0
+left join v_bakasha_last_status v on
+v.mispar_zehut = p.mispar_zehut and p.mispar_zehut_manoah = 0 or
+v.mispar_zehut = p.mispar_zehut_manoah and p.mispar_zehut_manoah <> 0
+left join netuney_sachar n on
+n.seq_bakasha = v.seq_bakasha
+left join vetek_detail d on
+d.seq_bakasha = v.seq_bakasha
+left join code_sug_bakasha c on
+c.code_sug_bakasha = v.code_sug_bakasha
+left join bney_mishpacha b on
+b.mispar_zehut_ben_mishpacha = p.mispar_zehut and p.mispar_zehut_manoah <> 0
+where v.seq_ezor_ovdim = 206
+and p.taarich_bitul is null
+and v.code_action = 98
+and v.code_sug_bakasha in (1,14)
+and d.code_type_vetek in (1,2)
+and (n.seq_netuney_sachar is null or
+n.seq_netuney_sachar is not null
+and n.code_sug_maskoret = 1
+and d.seq_netuney_sachar = n.seq_netuney_sachar)
+order by 1,2,3;
+
+
+create or replace force view prm_system_copy.v_haavarat_bakasha_to_action as
+select  distinct  3 kivun, b.seq_bakasha, 0 code_action,
+w2.code_role_to, w2.next_action code_action_new, ca2.code_sug_action, ca2.teur_action,w2.order_wf,w2.dilug,
+sysdate date_action,0 code_user_to_internal
+from bakasha b
+left join workflow_2_sug_bakasha w
+on w.code_source = b.code_source
+and w.code_sug_bakasha = b.code_sug_bakasha
+left join workflow w2
+on w2.code_sug_workflow = w.code_sug_workflow
+left join code_role r2
+on r2.code_role = w2.code_role_to
+left join code_action ca2
+on w2.next_action = ca2.code_action
+where (ca2.code_sug_action = 1 or
+      ca2.code_sug_action = 5)
+order by b.seq_bakasha asc, w2.order_wf asc;
+
+
+create or replace force view prm_system_copy.v_hachzarat_bakasha_to_action as
+select  distinct  2 kivun, b.seq_bakasha, w1.next_action code_action,
+w2.code_role_to, w2.next_action code_action_new, ca2.code_sug_action, ca2.teur_action,w2.order_wf,w2.dilug,
+a.date_action,a.code_user_to_internal,d1.code_department,w1.code_sug_workflow
+from v_bakasha_last_status b
+left join workflow_2_sug_bakasha w
+on w.code_source = b.code_source
+and w.code_sug_bakasha = b.code_sug_bakasha
+left join workflow w1
+on w1.code_sug_workflow = w.code_sug_workflow
+left join code_role r1
+on r1.code_role = w1.code_role_to
+left join code_department d1
+on d1.code_department = r1.code_department
+left join code_action ca1
+on ca1.code_action = w1.next_action
+left join workflow w2
+on w2.code_sug_workflow = w1.code_sug_workflow
+left join code_role r2
+on r2.code_role = w2.code_role_to
+left join code_department d2
+on d2.code_department = r2.code_department
+left join code_action ca2
+on w2.next_action = ca2.code_action
+left join action_log a
+on a.seq_bakasha = b.seq_bakasha
+and a.code_action = w2.next_action
+where ca2.code_sug_action = 1
+and ca2.is_maarechet = 0
+and d2.code_yechida = d1.code_yechida
+--and w1.next_action = 33
+--and b.seq_bakasha = 44529
+and not(w2.dilug = 2 and a.date_action is null) -- לא לחזור לשלב לא חובה בתנאי, שלא היה בו קודם
+and w2.order_wf <=                              -- לקחת רק שלבים קודמים
+    (select max (w3.order_wf)
+    from workflow w3, code_action ca3
+    where w3.next_action = ca3.code_action
+    and ca3.code_sug_action = 1
+    and w3.code_sug_workflow = w2.code_sug_workflow
+    and (ca1.code_sug_action = 1 and w3.order_wf < w1.order_wf
+    or ca1.code_sug_action <> 1 and w3.order_wf < w1.order_wf -2))
+and (a.date_action =                             -- לקחת תאריך אחרון שבוצעה בו פעולה, שמחזירים אליה
+    (select max(a1.date_action)
+    from action_log a1
+    where a1.seq_bakasha = a.seq_bakasha
+    and a1.code_action = w2.next_action)
+or                                               -- או שלב קודם מה-workflow
+(select min(w5.order_wf)
+ from workflow w5
+ where w5.code_sug_workflow = w1.code_sug_workflow
+ and w5.next_action = b.code_action) < w1.next_action)
+/*and not exists                                  -- לא לעבור לקבוצת פעולות של יחידה אחרת
+    (select r4.code_department
+    from workflow w4
+    left join code_role r4
+    on r4.code_role = w4.code_role_to
+    left join code_department d4
+    on d4.code_department = r4.code_department
+    where w4.code_sug_workflow = w1.code_sug_workflow
+    and d4.code_yechida <> d1.code_yechida
+    and w4.order_wf between w2.order_wf and w1.order_wf)*/
+order by b.seq_bakasha asc, w2.order_wf desc, a.date_action
+;
+
+
+create or replace force view prm_system_copy.v_hivun_current_and_prev as
+select b.seq_bakasha current_seq_bakasha, a.seq_hivun,nvl(prev.code_bakasha_detail,2) code_hivun,a.achuz_hivun,a.date_bakasha,a.date_update
+,a.user_update,a.seq_bakasha
+from bakasha b
+left join v_bakasha_last_status  prev
+on prev.seq_prisha = b.seq_prisha
+and b.seq_bakasha >=prev.seq_bakasha
+right join hivun a
+on prev.seq_bakasha = a.seq_bakasha
+where prev.is_active=1 and prev.code_sug_bakasha in(1,3,5,7,16) and b.code_sug_bakasha in(1,3,5,7,16)
+order by b.seq_bakasha;
+
+
+create or replace force view prm_system_copy.v_kidum_bakasha_to_action as
+select  distinct 1 kivun, b.seq_bakasha, w1.next_action,
+w2.code_role_to, w2.next_action code_action_new, ca2.code_sug_action, ca2.teur_action, w2.order_wf, w2.dilug,
+sysdate date_action,0 code_user_to_internal,
+w1.next_action code_action,w1.dilug dilug_current,ca1.code_department
+from bakasha b
+left join workflow_2_sug_bakasha w
+on w.code_source = b.code_source
+and w.code_sug_bakasha = b.code_sug_bakasha
+left join workflow w1
+on w1.code_sug_workflow = w.code_sug_workflow
+left join code_action ca1
+on ca1.code_action = w1.next_action
+left join workflow w2
+on w2.code_sug_workflow = w1.code_sug_workflow
+left join code_action ca2
+on ca2.code_action = w2.next_action
+where w1.order_wf < w2.order_wf
+and ca2.code_sug_action = 1
+and ca1.is_maarechet = 0
+/*and w1.is_automatic = 0*/
+and w2.dilug in (0,1)
+and w2.order_wf <=
+(select min (w3.order_wf)
+    from workflow w3, code_action ca2
+    where w3.next_action = ca2.code_action
+    and ca2.code_sug_action = 1
+    and w3.dilug = 0
+    and w3.code_sug_workflow = w2.code_sug_workflow
+    and w3.order_wf > w1.order_wf)
+union
+select distinct 4 kivun, b.seq_bakasha, w1.code_action,
+w2.code_role_to, w2.next_action code_action_new, ca2.code_sug_action, ca2.teur_action, w2.order_wf, 1,
+sysdate date_action,0 code_user_to_internal,
+w2.next_action code_action,0, ca1.code_department
+from bakasha b
+left join workflow_2_sug_bakasha w
+on w.code_source = b.code_source
+and w.code_sug_bakasha = b.code_sug_bakasha
+left join workflow w1
+on w1.code_sug_workflow = w.code_sug_workflow
+left join code_action ca1 on
+ca1.code_action = w1.code_action
+left join workflow w2 on
+w2.code_sug_workflow = w1.code_sug_workflow
+left join code_action ca2 on
+ca2.code_action = w2.next_action
+where ca1.is_external = 1
+and ca1.code_department is not null
+and w2.order_wf  =
+(select min(w3.order_wf)
+ from workflow w3
+ left join code_action a3 on
+ a3.code_action = w3.next_action
+ where a3.code_sug_action = 1
+ and a3.is_maarechet = 0
+ and w3.code_sug_workflow = w2.code_sug_workflow
+ and w3.order_wf >= w1.order_wf)
+order by seq_bakasha asc, order_wf asc;
+
+
+create or replace force view prm_system_copy.v_last_address as
+with a1 as
+--Get last address by bakasha for poresh and for bney_mishpacha
+ (select distinct a.seq_poresh,
+                  a.seq_bney_mishpacha,
+                  a.seq_bakasha,
+                  first_value(a.seq_address) over(partition by a.seq_poresh, a.seq_bney_mishpacha, a.seq_bakasha order by a.code_address desc, a.seq_address desc) max_seq_address
+    from address a),
+a2 as
+--Get last address for poresh and for bney_mishpacha
+ (select distinct a.seq_poresh,
+                  a.seq_bney_mishpacha,
+                  first_value(a.seq_address) over(partition by a.seq_poresh, a.seq_bney_mishpacha order by a.code_address desc, a.seq_address desc) max_seq_address
+    from address a),
+t as
+--Get poresh for every bakasha
+ (select b1.seq_bakasha, p1.seq_poresh
+    from bakasha b1
+    left join prisha p1
+      on b1.seq_prisha = p1.seq_prisha),
+t1 as
+--Join poersh to last address
+ (select t.seq_bakasha,
+         t.seq_poresh,
+         null as seq_bney_mishpacha,
+         --Get the last address that join to the bakasha, if it's exist.
+         --Else, Get the last address that join to the poresh
+         nvl(a1.max_seq_address, a2.max_seq_address) max_seq_address
+    from t
+  --Join by bakasha
+    left join a1
+      on a1.seq_bakasha = t.seq_bakasha
+     and a1.seq_poresh = t.seq_poresh
+  --Join by poresh
+    left join a2
+      on a2.seq_poresh = t.seq_poresh
+      where a2.seq_bney_mishpacha is null),
+t2 as
+--Join bney mishpacha to last address
+ (select t.seq_bakasha,
+          null,
+         b2.seq_bney_mishpacha,
+         --Get the last address that join to the bakasha, if it's exist.
+         --Else, Get the last address that join to the bney_mishpacha
+         nvl(a1.max_seq_address, a2.max_seq_address) max_seq_address
+    from  bney_mishpacha b2
+    left join t
+      on t.seq_poresh = b2.seq_porshim
+  --Join by bakasha
+    left join a1
+      on a1.seq_bakasha = t.seq_bakasha
+     and a1.seq_bney_mishpacha = b2.seq_bney_mishpacha
+  --Join by poresh
+    left join a2
+      on a2.seq_bney_mishpacha = b2.seq_bney_mishpacha),
+      --Union poresh and bney_mishpacha
+u as
+ (select * from t1
+  union select * from t2
+  )
+ --Select the other fields from address
+select u.seq_poresh,
+       u.seq_bney_mishpacha,
+        t.street || ' ' || case
+         when t.apartment is null or t.apartment=0 THEN
+          trim(to_char(t.house, 'B9999999999'))
+         when t.house is null then
+          '  /' || trim(to_char(t.apartment, 'B9999999999'))
+         else
+          trim(to_char(t.house, 'B9999999999')) || '/' ||
+          trim(to_char(t.apartment, 'B9999999999'))
+       end ktovet,
+       t.code_city,
+       t.mikud,
+       t.code_address,
+       t.street,
+       t.house,
+       t.apartment,
+       t.entrance,
+       t.house_letter,
+       u.seq_bakasha
+
+  from u
+  left join address t
+    on t.seq_address = u.max_seq_address
+;
+
+
+create or replace force view prm_system_copy.v_last_bakasha_zakaut as
+with t as
+ (select b.seq_prisha,
+         b.seq_bakasha,
+         decode(a.seq_action_log, null, 0, 1) code_action_end_is_exist
+    from bakasha b
+    left join code_sug_bakasha s
+      on b.code_sug_bakasha = s.code_sug_bakasha
+    left join action_log a
+      on a.seq_bakasha = b.seq_bakasha
+     and a.code_action = 98
+   where nvl(s.code_merge_bakasha, 0) = 1),
+t1 as
+ (select distinct t.seq_prisha,
+         first_value(t.seq_bakasha) over(partition by t.seq_prisha order by t.code_action_end_is_exist desc, t.seq_bakasha desc) seq_bakasha_zakaut
+    from t),
+t2 as
+(select t1.seq_prisha,t1.seq_bakasha_zakaut,
+  max(d.code_darga) keep(dense_rank first order by nvl(taarich_me, sysdate) desc) CODE_DARGA,
+  max(d.code_derug) keep(dense_rank first order by nvl(taarich_me, sysdate) desc) code_derug
+  from t1 left join  darga_vederug_tik d
+  on t1.seq_bakasha_zakaut = d.seq_bakasha
+  group by t1.seq_prisha, t1.seq_bakasha_zakaut)
+select t2."SEQ_PRISHA",t2."SEQ_BAKASHA_ZAKAUT",t2."CODE_DARGA",t2."CODE_DERUG",
+       r.taarich_prisha,
+       r.code_seif_prisha,
+       n.date_start_zakaut,
+       n.achuz_kizba_sofi,
+       n.chelkiyut_sofit,
+       n.date_end_zakaut
+  from t2
+  left join bakasha_regila r
+    on t2.seq_bakasha_zakaut = r.seq_bakasha
+  left join netuney_tik_mechushavim n
+    on t2.seq_bakasha_zakaut = n.seq_bakasha
+   and n.code_department = 2;
+
+
+create or replace force view prm_system_copy.v_ld_log as
+select DISTINCT LL.ID, LLD.CODE_LOAD_MSG, CM.TEUR_LOAD_MSG, LL.DATE_GET
+from LD_LOG LL, LD_LOG_DETAILS LLD, CODE_LOAD_MSG CM
+where LL.SEQ_LD_LOG = LLD.SEQ_LD_LOG
+and LLD.CODE_LOAD_MSG = CM.CODE_LOAD_MSG;
+
+
+create or replace force view prm_system_copy.v_mazav_mishpacti_sf as
+select seq_poresh, date_mazav_mishpachti, seq_mazav_mishpachti, code_mazav_mishpachti
+          , row_number() over (partition by seq_poresh
+                               order by nvl(date_mazav_mishpachti,to_date('01/01/1900','dd/mm/yyyy')) desc, nvl(seq_mazav_mishpachti,0) desc) as rn
+     from mazav_mishpachti mm1
+     left join v_bakasha_last_status vmm1 on vmm1.seq_bakasha = mm1.seq_bakasha
+     where vmm1.seq_bakasha is null
+     or    vmm1.code_action in (98,129);
+
+
+create or replace force view prm_system_copy.v_mechushavim_2_curnt_and_prev as
+select distinct b.seq_bakasha current_seq_bakasha,
+       a.achuz_kizba_nechut,
+       a.achuz_kizba_chelkiyut_melea,
+       a.achuz_kizba_kafuf_chelkiyut,
+       a.keren_mezaka_shana,
+       a.keren_mezaka_chodesh,
+       a.keren_mezaka_yamim,
+       a.odef_sherut_shanim,
+       a.odef_sherut_chodashim,
+       a.odef_sherut_yamim,
+       a.chodshim_mezkim_achary_hagdala,
+       a.ahuz_kizb_achry_hagdl_kaf_chel,
+       a.chelkiyut_lefi_sherut,
+       a.shnot_hagdala_sofi,
+       a.tkufa_lo_mezaka_sherut,
+       a.tkufa_mezaka_sherut,
+       a.chodshey_hagdala_sofi,
+       a.achuz_kizb_achry_hagdl_chl_mla,
+       a.chodeshim_mezkim_out_of_srv_y,
+       a.chodeshim_mezkim_out_of_srv_m,
+       a.chodeshim_mezkim_out_of_srv_d,
+       a.chelkiyut_meshuklelet_sherut,
+       a.seq_netuney_tik_mechushavim,
+       a.seq_bakasha,
+       a.chelkiut_lefi_nechut,
+       a.is_zakai_lmaanak,
+       a.kitzba_medina_hisht_meshukll,
+       a.date_start_zakaut,
+       a.code_department,
+       a.is_hachlata_sofit,
+       a.maskoret_kizba,
+       a.achuz_pizuy,
+       a.schum_kizba,
+       a.schum_maanak_pizuy,
+       a.tkufa_overlap_kizba,
+       a.tkufa_overlap_maanak,
+         a.date_update,
+       a.is_salary_up_70,
+       a.is_complete_salary,
+       a.achuz_kizba_sofi,
+       a.chodshey_pizuy,
+       a.makor_maskoret_kovaat,
+       a.is_zakay_kizba,
+       a.code_group_prisha,
+       a.chelkiyut_sofit,
+       a.tkufa_mezaka_sherut_not_round,
+       a.code_e_zakaut,
+       a.achuz_kizba_fixed,
+       a.achuz_kizba_yechasi,
+       a.date_end_zakaut,
+       a.achuz_kizba_maximali,
+       a.hp_sheur_havara_max,
+       a.hp_tkufa_mshutefet_calc,
+       a.hp_is_sheerim,
+       a.hp_date_start_zakaut,
+       a.achuz_kizba_gil_60,
+       a.hp_date_haavara,
+        a.is_seif_57,
+        a.code_maanak_almana,
+        a.is_maanak_nisuin1,
+        a.is_maanak_nisuin2,
+        a.mispar_misra,
+        a.user_update,
+        a.yadani,
+        a.total_ben_zug,
+        a.total_child,
+        a.interest_linkage,
+        a.date_zakaut_maanak_almana,
+        a.calc_as_of_date
+from bakasha b
+left join v_bakasha_last_status prev_b
+on prev_b.seq_prisha = b.seq_prisha
+and b.seq_bakasha >= prev_b.seq_bakasha
+left join code_sug_workflow sw
+on sw.code_sug_workflow = prev_b.code_sug_workflow
+--confirm bakasha
+--show all bakashot status siyum tipul
+join workflow w_conf
+        on w_conf.code_sug_workflow = prev_b.code_sug_workflow
+       and w_conf.code_action = sw.code_action_lock
+      left join workflow w_curr
+        on w_curr.code_sug_workflow = prev_b.code_sug_workflow
+       and w_curr.code_action = prev_b.code_action
+left join netuney_tik_mechushavim a
+on prev_b.seq_bakasha = a.seq_bakasha
+where a.seq_netuney_tik_mechushavim is not null
+and ( b.seq_bakasha = prev_b.seq_bakasha or
+    w_curr.order_wf >= w_conf.order_wf
+      or prev_b.code_action in( 98,42)
+     )
+
+order by b.seq_bakasha
+;
+
+
+create or replace force view prm_system_copy.v_misradim_poresh as
+select t.seq_ezor_ovdim,e.teur_ezor_ovdim,t.seq_prisha,t.seq_poresh from prisha t
+left join poresh p on t.seq_poresh = p.porshim_seq
+left join code_ezor_ovdim e on t.seq_ezor_ovdim = e.seq_ezor_ovdim;
+
+
+create or replace force view prm_system_copy.v_move_bakasha_to_last_action as
+select 3 kivun, v.seq_bakasha, w.code_action, w.code_role_to, w.code_action code_action_new, c.code_sug_action,
+c.teur_action, w.order_wf, w.dilug, v.date_action, v.code_user_to_internal, v.code_department_action code_department
+from v_bakasha_last_status v, WORKFLOW w, code_action c
+where v.code_sug_workflow = w.code_sug_workflow
+and w.order_wf >
+(select w1.order_wf
+from workflow w1
+where w1.next_action = 98
+and w1.code_sug_workflow = w.code_sug_workflow)
+and not exists
+(select w2.order_wf
+from workflow w2
+where w2.code_action = w.code_action
+and w.order_wf <
+(select w3.order_wf
+from workflow w3
+where w3.next_action = 98
+and w3.code_sug_workflow = w.code_sug_workflow)
+)
+and c.code_action = w.code_action
+and c.code_sug_action = 1
+--and v.seq_bakasha = 420028
+order by w.order_wf
+;
+
+
+create or replace force view prm_system_copy.v_move_bakasha_to_action as
+select KIVUN,SEQ_BAKASHA,CODE_ACTION,CODE_ROLE_TO,CODE_ACTION_NEW,CODE_SUG_ACTION,TEUR_ACTION,(1000-ORDER_WF) ORDER_WF,DILUG,DATE_ACTION,CODE_USER_TO_INTERNAL,0 CODE_DEPARTMENT from v_hachzarat_bakasha_to_action
+union
+select KIVUN,SEQ_BAKASHA,CODE_ACTION,CODE_ROLE_TO,CODE_ACTION_NEW,CODE_SUG_ACTION,TEUR_ACTION,ORDER_WF,DILUG,DATE_ACTION,CODE_USER_TO_INTERNAL,CODE_DEPARTMENT from v_kidum_bakasha_to_action
+union
+select KIVUN,SEQ_BAKASHA,CODE_ACTION,CODE_ROLE_TO,CODE_ACTION_NEW,CODE_SUG_ACTION,TEUR_ACTION,ORDER_WF,DILUG,DATE_ACTION,CODE_USER_TO_INTERNAL,0 CODE_DEPARTMENT from v_haavarat_bakasha_to_action
+union
+select KIVUN,SEQ_BAKASHA,0,CODE_ROLE_TO,CODE_ACTION_NEW,CODE_SUG_ACTION,TEUR_ACTION,ORDER_WF,DILUG,DATE_ACTION,CODE_USER_TO_INTERNAL,CODE_DEPARTMENT from v_move_bakasha_to_last_action;
+
+
+create or replace force view prm_system_copy.v_mukdmet_last_status_versions as
+select distinct
+       t1."MISPAR_MISRA",t1."TOAR_MISRA",t1."SEQ_EZOR_OVDIM",t1."SEQ_PORSHIM",t1."MISRAD_MASKORET",t1."CODE_DERUG",t1."CODE_DARGA_ME",t1."CODE_DARGA_AD",t1."CODE_SEIF_PRISHA",t1."TAARICH_SIYUM_SHERUT",t1."CODE_SUG_TOCHNIT_PRISHA",t1."TAARICH_BAKASHA",t1."CODE_SUG_MISRA_LEBITUL",t1."MASKORET_KOVAAT",t1."CHELKIYUT_HASAKA_MESHUKLELET",t1."SHNOT_SHERUT_BAMEDINA",t1."TAARICH_KNISA",t1."CODE_MAKOR",t1."SEQ_BAKASHA",t1."SEQ_PRISHA",t1."MISPAR_ZEHUT",t1."CODE_SOURCE",
+       first_value(s1.code_action)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_action,
+       first_value(s1.date_action)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) date_action,
+       first_value(s1.code_user_update)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_user_update,
+       first_value(s2.teur_action)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) teur_action,
+       first_value(s1.remarks)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) remarks
+      ,first_value(s1.code_user_to_internal)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_user_to_internal
+      ,first_value(s1.date_to_do)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) date_to_do
+      ,first_value(s1.date_do)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) date_do
+      ,first_value(s1.code_user_to_external)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_user_to_external
+      ,first_value(s2.is_new)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) is_new
+      ,first_value(s1.seq_action_log)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) seq_action_log
+from v_mukdemet t1
+left join action_log s1
+on t1.seq_bakasha = s1.seq_bakasha
+left join code_action s2
+on s1.code_action = s2.code_action
+where s2.is_status = 1;
+
+
+create or replace force view prm_system_copy.v_mukdemet_last_status as
+select v."MISPAR_MISRA",v."TOAR_MISRA",v."SEQ_EZOR_OVDIM",v."SEQ_PORSHIM",v."MISRAD_MASKORET",v."CODE_DERUG",v."CODE_DARGA_ME",v."CODE_DARGA_AD",v."CODE_SEIF_PRISHA",v."TAARICH_SIYUM_SHERUT",v."CODE_SUG_TOCHNIT_PRISHA",v."TAARICH_BAKASHA",v."CODE_SUG_MISRA_LEBITUL",v."MASKORET_KOVAAT",v."CHELKIYUT_HASAKA_MESHUKLELET",v."SHNOT_SHERUT_BAMEDINA",v."TAARICH_KNISA",v."CODE_MAKOR",v."SEQ_BAKASHA",v."SEQ_PRISHA",v."MISPAR_ZEHUT",v."CODE_SOURCE",v."CODE_ACTION",v."DATE_ACTION",v."CODE_USER_UPDATE",v."TEUR_ACTION",v."REMARKS",v."CODE_USER_TO_INTERNAL",v."DATE_TO_DO",v."DATE_DO",v."CODE_USER_TO_EXTERNAL",v."IS_NEW",v."SEQ_ACTION_LOG"
+from v_mukdmet_last_status_versions v
+where v.seq_bakasha = (select max(t.seq_bakasha)
+                 from v_mukdemet t
+                 where
+                 v.seq_prisha = t.seq_prisha);
+
+
+create or replace force view prm_system_copy.v_perm_decision_sug_bakasha as
+select a.seq_perm_decision_sug_bakasha,t1.code_teur_bakasha,a.code_sug_bakasha,a.code_role,a.code_sug_ezor_ovdim,a.exists_code_sug_bakasha,a.not_exists_code_sug_bakasha
+from perm_decision_sug_bakasha a
+left join code_sug_bakasha t1 on a.code_sug_bakasha = t1.code_sug_bakasha;
+
+
+create or replace force view prm_system_copy.v_perm_document_sug_bakasha as
+select t2.seq_document_template,t.code_sug_bakasha,t2.TEUR_DOCUMENT_TEMPLATE,null as direction,t.code_department,t.code_seif_prisha,t.is_gimlat_kefel,t.seq_ezor_ovdim
+,t.is_participation_from,t.code_bakasha_detail
+    from PERM_DOCUMENT_by_BAKASHA t
+    left join code_document_type t1
+     on t.seq_document_type = t1.seq_document_type
+    right join code_document_template t2
+     on t1.seq_document_type = t2.seq_document_type;
+
 
 create or replace package prm_system_copy.pk_prm_utils is
   ----------------------------------------------------------------------------
@@ -749,6 +2837,712 @@ create or replace package prm_system_copy.pk_prm_utils is
 end;
 /
 
+create or replace force view prm_system_copy.v_perm_user_role as
+select pu.seq_perm_user_role, pu.code_role, pu.code_user, pu.main_roll,
+pk_prm_utils.get_previous_chelkiut(pu.seq_perm_user_role,sysdate) chelkiut
+from perm_user_role pu;
+
+
+create or replace force view prm_system_copy.v_poresh_category as
+select a.seq_prisha,
+       nvl(count_end_bakashot, 0) count_end_bakashot,
+       date_end_zakaut,
+       date_start_zakaut,
+       case
+         when trunc(nvl(date_end_zakaut, sysdate + 1)) < trunc(sysdate) then
+          3
+         when taarich_ptira is not null then
+          4
+         when nvl(count_end_bakashot, 0) = 0 then
+          1
+
+         when nvl(count_end_bakashot, 0) <> 0 and
+              trunc(nvl(date_end_zakaut, sysdate + 1)) > trunc(sysdate) then
+          2
+       end category,
+       porshim_seq,
+       sug_zihuy,
+       mispar_zehut,
+       shem_prati,
+       shem_mishpacha,
+       telephon,
+       pelephon,
+       taarich_leda,
+       email,
+       taarich_ptira
+  from (with v as (select v.seq_prisha, count(*) count_end_bakashot
+                     from v_bakasha_last_status v
+                     join code_sug_bakasha c
+                       on c.code_sug_bakasha = v.code_sug_bakasha
+                    where 1 = 1
+                         --- קימות בקשות לפרשיה מלבד חיסכון ומקודמת שאילו בקשות לפעיל
+                      and nvl(c.to_pail, 0) <> 1
+                      and v.code_action = 98
+                    group by v.seq_prisha),
+                    v1 as (select v.seq_prisha,
+                                                          max(v.seq_bakasha) max_seq_bakasha
+                                                     from v_bakasha_last_status v
+                                                    where v.code_action <> 17
+                                                    group by v.seq_prisha),
+
+       v2 as (select v1.seq_prisha, n.date_end_zakaut, n.date_start_zakaut
+                from v1
+                left join netuney_tik_mechushavim n
+                  on v1.max_seq_bakasha = n.seq_bakasha
+                 and n.code_department = 2
+                 and n.mispar_misra = 0)
+         select p1.seq_prisha,
+                p2.*,
+                v.count_end_bakashot,
+                v2.date_end_zakaut,
+                v2.date_start_zakaut
+           from prisha p1
+           left join poresh p2
+             on p1.seq_poresh = p2.porshim_seq
+           left join v
+             on v.seq_prisha = p1.seq_prisha
+           left join v2
+             on v.seq_prisha = v2.seq_prisha
+
+          ) a
+;
+
+
+create or replace force view prm_system_copy.v_poresh_documents as
+select t3.seq_poresh,
+   t3.seq_prisha,t2.seq_bakasha,
+   t1.pail,
+   t.seq_document,
+   t.seq_document_type,
+   t.document_url,
+   t.teur,
+   t.date_update,
+   t.code_user,
+   t.remarks,
+   t.date_create,
+   t.page_count,
+   t.source_document_id,
+   t.is_exist,
+   t.is_same,
+   t.is_valid_data,
+   t.code_document_direction,
+   t.code_role,
+   t.code_department,
+   t.id_archive,
+   t.source_type
+    from document t
+    left join document_bakasha t1
+    on t.seq_document = t1.seq_document
+    left join bakasha t2
+    on t1.seq_bakasha = t2.seq_bakasha
+    left join prisha t3
+    on t3.seq_prisha = t2.seq_prisha;
+
+
+create or replace force view prm_system_copy.v_porshim as
+select distinct to_number(t.a) mispar_zehut,
+                to_number(t.ab) mispar_gimla,
+                0 code_group_prisha
+from TEMP_PORSHIM_HILAN_30092020 t
+                      where t.as1 in (5,6)
+                      and (t.ah in (
+                      'פעיל',
+                      'חזר לפעילות')
+                      or (t.ah = 'הפסקה זמנית' and
+                      to_date(t.ae,'dd/mm/yyyy') > to_date('01/01/2020','dd/mm/yyyy')
+                      )
+                      or (t.ah = 'פטירה' and
+                      to_date(t.ae,'dd/mm/yyyy') > to_date('01/01/2020','dd/mm/yyyy')
+                      )
+                      )
+                      and to_number(t.d) < 8
+union
+select distinct p.mispar_zehut,--p.shem_prati, p.shem_mishpacha,
+                to_number(t.ab) mispar_gimla,
+                0 code_group_prisha
+from TEMP_PORSHIM_HILAN_30092020 t
+left join bney_mishpacha b on
+b.mispar_zehut_ben_mishpacha = t.a
+left join poresh p on
+p.porshim_seq = b.seq_porshim
+                      where t.as1 = 2
+                      and (t.ah in (
+                      'פעיל',
+                      'חזר לפעילות')
+                      or (t.ah = 'הפסקה זמנית' and
+                      to_date(t.ae,'dd/mm/yyyy') > to_date('01/01/2020','dd/mm/yyyy')
+                      ))
+                      and to_number(t.d) < 8
+                      and (b.to_date_sium_zakaut is null or b.to_date_sium_zakaut > sysdate)
+                      and b.mispar_zehut_ben_mishpacha is not null
+union
+(select distinct le.mispar_zehut,
+                 v.gimla_number,
+                 0 code_group_prisha
+
+from ld_log_events le
+left join v_bakasha_last_status v on  v.seq_bakasha = le.seq_bakasha
+                                  and v.mispar_zehut = le.mispar_zehut
+left join temp_porshim_hilan_30092020 t on t.a = le.mispar_zehut
+                                        and t.ab = le.mispar_gimla
+                      where le.code_event = 200
+                      and le.code_trigger = 0
+                      and v.code_sug_bakasha in (1,8,5)
+                      and v.code_action not in(17,100)
+                      and le.code_record_level is not null
+                      and t.a is null)
+union
+(select distinct v.mispar_zehut,
+                 v.gimla_number,
+                 0 code_group_prisha
+from ld_log_events le
+left join v_bakasha_last_status v on  v.seq_bakasha = le.seq_bakasha
+                                  and v.mispar_zehut <> le.mispar_zehut
+left join bney_mishpacha b        on b.mispar_zehut_ben_mishpacha = le.mispar_zehut
+left join temp_porshim_hilan_30092020 t on t.a = le.mispar_zehut
+                                        and t.ab = le.mispar_gimla
+                      where le.code_event = 200
+                      and le.code_trigger = 0
+                      and v.code_sug_bakasha in (1,13,5,12)
+                      and v.code_action not in (17,100)
+                      and le.code_record_level is not null
+                      and t.a is null)
+union
+(select distinct v.mispar_zehut,
+                 v.gimla_number,
+                 0 code_group_prisha
+from ld_log_events le
+left join v_bakasha_last_status v on  v.seq_bakasha = le.seq_bakasha
+                                  and v.mispar_zehut <> le.mispar_zehut
+left join bney_mishpacha b        on b.mispar_zehut_ben_mishpacha = le.mispar_zehut
+left join temp_porshim_hilan_30092020 t on t.a = le.mispar_zehut
+                                        and t.ab = le.mispar_gimla
+                      where le.code_event = 200
+                      and le.code_trigger = 0
+                      and v.code_sug_bakasha in (1,13,5,12)
+                      and v.code_action not in (17,100)
+                      and le.code_record_level is not null
+                      and t.a is null)
+union
+select distinct p.mispar_zehut,
+                v.gimla_number,
+                0 code_group_prisha
+from poresh p
+left join v_bakasha_last_status v on
+v.seq_porshim = p.porshim_seq
+where sysdate - p.date_update_pelmail < 0.084
+and v.code_sug_bakasha in (33,35)
+and v.code_action in (134,135)
+and exists
+(select r.person_id
+from requests_crm r
+where r.person_id = p.mispar_zehut
+and   r.subject_code = case when v.code_sug_bakasha = 33 then 169 else 175 end
+and   sysdate - r.ld_date < 0.125
+and   r.seq_bakasha = v.seq_bakasha
+and   r.is_bakasha_butla = 0)
+union
+select distinct v.mispar_zehut,
+                v.gimla_number,
+                0 code_group_prisha
+from bney_mishpacha b
+left join v_bakasha_last_status v on
+v.seq_porshim = b.seq_porshim
+left join bakasha bk on
+bk.seq_bney_mishpacha = b.seq_bney_mishpacha
+where sysdate - b.date_update_pelmail < 0.084
+and v.code_sug_bakasha in (33,35)
+and v.code_action in(134,135)
+and exists
+(select r.person_id
+from requests_crm r
+where r.person_id = b.mispar_zehut_ben_mishpacha
+and   r.subject_code = case when v.code_sug_bakasha = 33 then 169 else 175 end
+and   sysdate - r.ld_date < 0.125
+and   r.seq_bakasha = v.seq_bakasha
+and   r.is_bakasha_butla = 0)
+/*union
+(select p.mispar_zehut,
+        v.gimla_number,
+        n.code_group_prisha
+from poresh p
+left join v_bakasha_last_status v on
+v.seq_porshim = p.porshim_seq
+left join netuney_tik_mechushavim n on
+n.seq_bakasha = v.seq_bakasha
+and n.code_department = 2
+where v.code_action = 98
+and p.taarich_ptira is not null
+and p.taarich_ptira >= sysdate - 1000
+and v.code_sug_bakasha in (1,13,12)
+and nvl(n.code_group_prisha,0) = 4)*/
+order by 1
+;
+
+
+create or replace force view prm_system_copy.v_porshim2 as
+select distinct p2.mispar_zehut mispar_zehut_amiti, /*porshim.mispar_gimla, */pr.seq_prisha, p2.porshim_seq, p2.sug_zihuy,
+pr.gimla_number mispar_gimla, pr.seq_ezor_ovdim, p2.taarich_ptira
+from v_porshim porshim
+left join poresh p                   on p.mispar_zehut = porshim.mispar_zehut
+left join zheut_fictivi_from_hilan z on z.mispar_zheut_fictivi = porshim.mispar_zehut
+left join poresh p1                  on p1.mispar_zehut = z.mispar_zheut
+left join prisha pr                  on pr.seq_poresh = case when p.porshim_seq is not null then p.porshim_seq else p1.porshim_seq end
+                                     and instr(to_char(porshim.mispar_gimla),to_char(pr.gimla_number)) > 0
+--left join code_ezor_ovdim ce         on ce.seq_ezor_ovdim = pr.seq_ezor_ovdim
+left join poresh p2                  on p2.porshim_seq = case when p.porshim_seq is not null then p.porshim_seq else p1.porshim_seq end
+
+                      where /*p2.taarich_ptira is null             --new
+                      and*/ nvl(pr.seq_ezor_ovdim,0)  not in (
+155,
+--159,
+163,
+164,
+--225,
+10150,
+10152,
+10155,
+10156,
+10157,
+10153,
+10151,
+--10154,
+10149
+)
+                      and pr.seq_prisha is not null
+                      /*and pr.seq_prisha not in (
+                      138718,
+163842,
+166739,
+57719,
+85240,
+74364,
+44374,
+159283,
+955,
+3634
+)*/
+/*                      and p2.mispar_zehut in (51490266,
+1541747
+)
+*/
+
+
+
+                      and (nvl(porshim.code_group_prisha,0) <> 4
+                      --and (nvl(p2.sug_zihuy,0) <> 5
+                      or (porshim.code_group_prisha = 4
+                      and exists
+                      (select b.seq_bney_mishpacha
+                      from bney_mishpacha b
+                      where b.seq_porshim = p2.porshim_seq
+                      --and p2.taarich_ptira is not null
+                      and b.code_relative is not null
+                      and b.taarich_ptira is null        --new
+                      and nvl(b.shem_prati,' ') <> substr(nvl(b.shem_prati,' '),1,1)
+                      and b.mispar_zehut_ben_mishpacha not in(1,18,26,34,59,67)
+                      and b.shem_mishpacha is not null
+                      and nvl(b.sug_zihuy,0) <> 5
+                      and b.mispar_zehut_ben_mishpacha <> 111111111
+                      and nvl(b.code_kirva,0) not in (0,24,25)
+                      and (b.to_date_sium_zakaut is null or b.to_date_sium_zakaut > sysdate)
+                      and b.mispar_zehut_ben_mishpacha not in
+                      (1911817,
+                      1540699,
+                      3534815,
+                      4119863,
+                      4882288,
+                      43292804,
+                      42554949,
+                      47639422,
+                      46708319,
+                      45923224,
+                      65320293,
+                      67433458
+                      )
+                      )
+                      )
+                      )
+order by 1
+;
+
+
+create or replace force view prm_system_copy.v_porshim3 as
+select distinct p2.mispar_zehut mispar_zehut_amiti, /*porshim.mispar_gimla, */pr.seq_prisha, p2.porshim_seq, p2.sug_zihuy,
+pr.gimla_number mispar_gimla, pr.seq_ezor_ovdim, p2.taarich_ptira
+from v_porshim porshim
+left join poresh p                   on p.mispar_zehut = porshim.mispar_zehut
+left join zheut_fictivi_from_hilan z on z.mispar_zheut_fictivi = porshim.mispar_zehut
+left join poresh p1                  on p1.mispar_zehut = z.mispar_zheut
+left join prisha pr                  on pr.seq_poresh = case when p.porshim_seq is not null then p.porshim_seq else p1.porshim_seq end
+                                     and instr(to_char(porshim.mispar_gimla),to_char(pr.gimla_number)) > 0
+--left join code_ezor_ovdim ce         on ce.seq_ezor_ovdim = pr.seq_ezor_ovdim
+left join poresh p2                  on p2.porshim_seq = case when p.porshim_seq is not null then p.porshim_seq else p1.porshim_seq end
+
+                      where nvl(pr.seq_ezor_ovdim,0)  not in (
+155,
+--159,
+163,
+164,
+--225,
+10150,
+10152,
+10155,
+10156,
+10157,
+10153,
+10151,
+--10154,
+10149
+)
+                      and pr.seq_prisha is not null
+                      /*and pr.seq_prisha not in (
+                      138718,
+163842,
+166739,
+57719,
+85240,
+74364,
+44374,
+159283,
+955,
+3634
+)*/
+/*                      and p2.mispar_zehut in (51490266,
+1541747
+)
+*/
+
+
+
+                      and (nvl(porshim.code_group_prisha,0) <> 4
+                      --and (nvl(p2.sug_zihuy,0) <> 5
+                      or (porshim.code_group_prisha = 4
+                      and exists
+                      (select b.seq_bney_mishpacha
+                      from bney_mishpacha b
+                      where b.seq_porshim = p2.porshim_seq
+                      --and p2.taarich_ptira is not null
+                      and b.code_relative is not null
+                      and b.taarich_ptira is null        --new
+                      and nvl(b.shem_prati,' ') <> substr(nvl(b.shem_prati,' '),1,1)
+                      and b.mispar_zehut_ben_mishpacha not in(1,18,26,34,59,67)
+                      and b.shem_mishpacha is not null
+                      and nvl(b.sug_zihuy,0) <> 5
+                      and b.mispar_zehut_ben_mishpacha <> 111111111
+                      and nvl(b.code_kirva,0) not in (0,24,25)
+                      and (b.to_date_sium_zakaut is null or b.to_date_sium_zakaut > sysdate)
+                      and b.mispar_zehut_ben_mishpacha not in
+                      (1911817,
+                      1540699,
+                      3534815,
+                      4119863,
+                      4882288,
+                      43292804,
+                      42554949,
+                      47639422,
+                      46708319,
+                      45923224,
+                      65320293,
+                      67433458
+                      )
+                      )
+                      )
+                      )
+order by 1
+;
+
+
+create or replace force view prm_system_copy.v_prisha_last_zakaut as
+with t as
+ (select b.seq_prisha,
+         b.seq_bakasha,
+         decode(a.seq_action_log, null, 0, 1) code_action_end_is_exist
+    from bakasha b
+    left join code_sug_bakasha s
+      on b.code_sug_bakasha = s.code_sug_bakasha
+    left join action_log a
+      on a.seq_bakasha = b.seq_bakasha
+     and a.code_action = 98
+     left join action_log a1
+     on a1.seq_bakasha = b.seq_bakasha
+     and a1.code_action = 17
+   where (nvl(s.code_merge_bakasha, 0) = 1
+    or b.code_sug_bakasha = 7)
+   and a1.seq_action_log is  null
+   ),
+t1 as
+ (select distinct t.seq_prisha,
+         first_value(t.seq_bakasha) over(partition by t.seq_prisha order by t.code_action_end_is_exist desc, t.seq_bakasha desc) seq_bakasha_zakaut
+    from t),
+t2 as
+(select t1.seq_prisha,t1.seq_bakasha_zakaut,
+  max(d.code_darga) keep(dense_rank first order by nvl(taarich_me, sysdate) desc) CODE_DARGA,
+  max(d.code_derug) keep(dense_rank first order by nvl(taarich_me, sysdate) desc) code_derug
+  from t1 left join  darga_vederug_tik d
+  on t1.seq_bakasha_zakaut = d.seq_bakasha
+  group by t1.seq_prisha, t1.seq_bakasha_zakaut)
+select distinct t2."SEQ_PRISHA",t2."SEQ_BAKASHA_ZAKAUT",t2."CODE_DARGA",t2."CODE_DERUG",
+       r.taarich_prisha,
+       r.code_seif_prisha,
+       n.date_start_zakaut,
+       n.achuz_kizba_sofi,
+       n.chelkiyut_sofit,
+       n.date_end_zakaut,
+       decode(n1.seq_netuney_tik_mechushavim, null, 0, 1) is_exist_another_job
+  from t2
+  left join bakasha_regila r
+    on t2.seq_bakasha_zakaut = r.seq_bakasha
+  left join netuney_tik_mechushavim n
+    on t2.seq_bakasha_zakaut = n.seq_bakasha
+   and n.code_department = 2
+   and n.mispar_misra = 0
+   left join netuney_tik_mechushavim n1
+    on t2.seq_bakasha_zakaut = n1.seq_bakasha
+   and n1.code_department = 2
+   and n1.mispar_misra = 1;
+
+
+create or replace force view prm_system_copy.v_programmers as
+select u.id_user, u.shem_mishpacha || ' ' || u.shem_prati shem_user
+from code_user u
+where u.is_programmer = 1;
+
+
+create or replace force view prm_system_copy.v_regila_last_status_versions as
+select distinct
+       t1."TAARICH_RISHUM",t1.code_makor,t1."TASHLUM_MOSAD_MUKAR",t1."TAARICH_CHATIMAT_TOFES",t1."CHISUV_LEFY_NECHUT",t1."ISHUR_PRISHA_LO_SOF_HODESH",t1."ISHUR_PRISHA_AL_AF_TIK_MISHMAT",t1."TAARICH_PRISHA",t1."SHERUT_MUGDAL",t1."SIBAT_DCHIA",t1."DCHIA_HEAROT",t1."TAARICH_ISHUR",t1."SUCH_YEMEY_HEADRUT",t1."SUCH_YEMEY_HEADRUT_SHNIRKSHU",t1."NECHUT_ACHUZ",t1."NECHUT_TAARICH_HAMIGBALA",t1."CHINUCH_MIKZOA",t1."HAARACHA_10_SHANIM",t1."CHISUV_LEFY_SHEERUT",t1."NECHUT_ACHUZ_NECHUT_LEPRISHA",t1."MISPAR_MISRA_ACHARON",t1."TEUR_MISRA_ACHARON",t1."CODE_SEIF_PRISHA",t1."SEQ_EZOR_OVDIM",t1.seq_porshim as seq_porshim,t1."TAARICH_HAFAKAT_MISMACH",t1."MISRAD_MASKORET",t1."NECHUT_MIGBALA_BKNISA_LESHERUT",t1."TAARICH_DCHIA",t1.chinuch_machoz,
+       first_value(s1.code_action)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_action,
+       first_value(s1.date_action)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) date_action,
+       first_value(s1.code_user_update)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_user_update,
+       first_value(s2.teur_action)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) teur_action,
+       first_value(s1.remarks)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) remarks
+      ,t1.mispar_zehut
+      ,t1.seq_contacts_ministries
+      ,t1.seq_bakasha
+      ,t1.seq_prisha
+      ,first_value(s1.code_user_to_internal)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_user_to_internal
+      ,first_value(s1.date_to_do)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) date_to_do
+      ,first_value(s1.date_do)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) date_do
+      ,first_value(s1.code_user_to_external)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) code_user_to_external
+      ,first_value(s2.is_new)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) is_new
+      ,first_value(s1.seq_action_log)over(partition by t1.seq_bakasha order by s1.seq_action_log desc) seq_action_log,
+      t1.code_sug_bakasha,
+      t1.code_sug_workflow
+from v_regila t1
+left join action_log s1
+on t1.seq_bakasha = s1.seq_bakasha
+left join code_action s2
+on s1.code_action = s2.code_action
+
+where s2.is_status = 1;
+
+
+create or replace force view prm_system_copy.v_regila_last_status as
+select "TAARICH_RISHUM","CODE_MAKOR","TASHLUM_MOSAD_MUKAR","TAARICH_CHATIMAT_TOFES","CHISUV_LEFY_NECHUT","ISHUR_PRISHA_LO_SOF_HODESH","ISHUR_PRISHA_AL_AF_TIK_MISHMAT","TAARICH_PRISHA","SHERUT_MUGDAL","SIBAT_DCHIA","DCHIA_HEAROT","TAARICH_ISHUR","SUCH_YEMEY_HEADRUT","SUCH_YEMEY_HEADRUT_SHNIRKSHU","NECHUT_ACHUZ","NECHUT_TAARICH_HAMIGBALA","CHINUCH_MIKZOA","HAARACHA_10_SHANIM","CHISUV_LEFY_SHEERUT","NECHUT_ACHUZ_NECHUT_LEPRISHA","MISPAR_MISRA_ACHARON","TEUR_MISRA_ACHARON","CODE_SEIF_PRISHA","SEQ_EZOR_OVDIM","SEQ_PORSHIM","TAARICH_HAFAKAT_MISMACH","MISRAD_MASKORET","NECHUT_MIGBALA_BKNISA_LESHERUT","TAARICH_DCHIA","CODE_ACTION","DATE_ACTION","CODE_USER_UPDATE","TEUR_ACTION","REMARKS","MISPAR_ZEHUT","SEQ_CONTACTS_MINISTRIES","SEQ_BAKASHA","SEQ_PRISHA","CODE_USER_TO_INTERNAL","DATE_TO_DO","DATE_DO","CODE_USER_TO_EXTERNAL","IS_NEW","SEQ_ACTION_LOG","CODE_SUG_BAKASHA",code_sug_workflow
+from v_regila_last_status_versions v
+where v.seq_bakasha = (select max(t.seq_bakasha)
+                 from v_regila t
+                 where
+                 v.seq_prisha = t.seq_prisha);
+
+
+create or replace force view prm_system_copy.v_sheerim as
+select distinct t.porshim_seq, b.seq_bney_mishpacha, p.seq_prisha,
+to_char(b.mispar_zehut_ben_mishpacha) || '---' ||  b.shem_prati || ' ' || b.shem_mishpacha || '---' ||
+(case when not b.code_relative is null then c.teur_relative
+      else 'בן זוג לשעבר'
+end) status, b.code_relative, b.code_kirva
+from poresh t
+left join bney_mishpacha b on
+b.seq_porshim = t.porshim_seq
+left join code_relative c on
+b.code_relative = c.code_relative
+left join prisha p on
+p.seq_poresh = t.porshim_seq
+where
+(/*b.achuz_kizba is not null
+and*/ b.code_relative <> 99
+and b.code_relative<>9
+and(b.code_relative = 1
+      or (b.code_relative > 3 )
+      or (b.code_relative in (2,3) and
+      --not b.taarich_leda is not null and
+      b.taarich_leda =
+      (select max(b1.taarich_leda)
+      from bney_mishpacha b1
+      where b1.seq_porshim = t.porshim_seq
+      and b1.code_relative = b.code_relative
+      --and b1.achuz_kizba is not null
+      ))
+      or b.own_bank_account = 1
+      )
+      )
+or b.code_kirva = 10
+;
+
+
+create or replace force view prm_system_copy.v_sheerim_chidush_tashlum as
+select distinct t.porshim_seq, b.seq_bney_mishpacha, p.seq_prisha,
+to_char(b.mispar_zehut_ben_mishpacha) || '---' ||  b.shem_prati || ' ' || b.shem_mishpacha ||
+(case when not b.to_date_sium_zakaut  is null  and not b.code_kirva  is null   then '---' || c.teur_kirva
+      else ' '
+end) status, b.code_relative, b.code_kirva,b.to_date_sium_zakaut
+from poresh t
+left join bney_mishpacha b on
+b.seq_porshim = t.porshim_seq
+left join code_kirva c on
+b.code_kirva = c.code_kirva
+left join prisha p on
+p.seq_poresh = t.porshim_seq
+where b.code_kirva in (1,2,5,10,14) or
+b.code_kirva <> 1 and b.to_date_sium_zakaut is not null and  b.to_date_sium_zakaut <= sysdate
+union
+select  a.porshim_seq,0, p.seq_prisha,
+to_char(a.mispar_zehut) || '---' ||  a.shem_prati || ' ' || a.shem_mishpacha || ' ' ||   ' פורש' status,0,0,a.taarich_ptira
+from poresh a
+left join prisha p on
+p.seq_poresh = a.porshim_seq
+where a.taarich_ptira is null
+;
+
+
+create or replace force view prm_system_copy.v_shemot_sadot as
+select t.table_name,t.column_name, t.column_id, t.owner, t.data_type,  30 max_length, '' parent_name, '' pail from ALL_TAB_COLUMNS  t
+where  t.table_name like'%CODE%'
+and t.OWNER NOT IN('SYS','EXFSYS')
+and t.column_id<=2
+and t.TABLE_NAME not in ('CODE_DOCUMENT_TEMPLATE',
+                         'CODE_EZOR_OVDIM',
+                         'CODE_MUKDEMET_LEBITUL',
+                         'CODE_SNIF_BANK',
+                         'CODE_SUB_SEIF_PRISHA',
+                         'CODE_UNIT',
+                         'V_CODE_SEIF_PRISHA',
+                         'V_CODE_SNIF_BANK',
+                         'CODE_DARGA')
+union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 40 max_length, '' parent_name, '' pail  from ALL_TAB_COLUMNS  t
+where  t.table_name = 'CODE_EZOR_OVDIM'
+and t.column_id in (2,9)
+union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 30 max_length, '' parent_name, '' pail  from ALL_TAB_COLUMNS  t
+where  t.table_name = 'CODE_DOCUMENT_TEMPLATE'
+and t.column_id in (1,3)
+union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 30 max_length, '' parent_name, '' pail  from ALL_TAB_COLUMNS  t
+where  t.table_name = 'CODE_MUKDEMET_LEBITUL'
+and t.column_id in (2,1)
+union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 30 max_length, 'CODE_BANK' parent_name, '' pail  from ALL_TAB_COLUMNS  t
+where  t.table_name = 'CODE_SNIF_BANK'
+and t.column_id in (2,3)
+union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 30 max_length, '' parent_name, '' pail  from ALL_TAB_COLUMNS  t
+where  t.table_name = 'CODE_SUB_SEIF_PRISHA'
+and t.column_id in (1,3)
+union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 30 max_length, '' parent_name, '' pail  from ALL_TAB_COLUMNS  t
+where  t.table_name = 'CODE_UNIT'
+and t.column_id in (3,4)
+union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 30 max_length, '' parent_name, '' pail  from ALL_TAB_COLUMNS  t
+where  t.table_name = 'V_CODE_SEIF_PRISHA'
+and t.column_id in (4,2)
+union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 30 max_length, 'CODE_DERUG' parent_name, 'PAIL' pail  from ALL_TAB_COLUMNS  t
+where  t.table_name = 'CODE_DARGA'
+and t.column_id in (1,2)
+union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 30 max_length, '~1' parent_name, 'PAIL' pail from ALL_TAB_COLUMNS  t
+where  t.table_name = 'V_EZOR_OVDIM_CATEGORY'
+and t.column_id in (1,2)
+union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 30 max_length, '' parent_name, '' pail from ALL_TAB_COLUMNS  t
+where  t.table_name = 'V_DEPARTMENTS_FOR_USERS'
+and t.column_id in (2,1)
+/*union
+select t.table_name,t.column_name, t.column_id, t.owner,  t.data_type, 30 max_length, '' parent_name, '' pail from ALL_TAB_COLUMNS  t
+where  t.table_name = 'V_CODE_USER_ALL_ROLES'
+and t.column_id in (1,2)*/
+order by table_name,data_type;
+
+
+create or replace force view prm_system_copy.v_sugey_bakashot_leshlicha_lehilan as
+select distinct w2b.code_sug_bakasha, b.code_teur_bakasha
+from workflow t
+left join workflow_2_sug_bakasha w2b on
+w2b.code_sug_workflow = t.code_sug_workflow
+left join code_sug_bakasha b on
+b.code_sug_bakasha = w2b.code_sug_bakasha
+where t.next_action = 134
+and w2b.code_sug_bakasha>0
+order by b.code_teur_bakasha;
+
+
+create or replace force view prm_system_copy.v_sug_ezor_ovdim_guf_hipus_m as
+select t.code_sug_ezor_ovdim,t.teur
+    from code_sug_ezor_ovdim t
+    where t.code_sug_ezor_ovdim in(1,2,3,5,6);
+
+
+create or replace force view prm_system_copy.v_sug_ezor_ovdim_prtcipton_guf as
+select t.code_sug_ezor_ovdim,t.teur
+    from code_sug_ezor_ovdim t
+    where t.code_sug_ezor_ovdim in(1,3,5,6,16);
+
+
+create or replace force view prm_system_copy.v_tosefot as
+select t."SEQ_TOSEFOT",t."SEQ_NETUNEY_SACHAR",t."CODE_SEMEL_TOSEFET",t."SUM",t."PERCENT",t."AMOUNT",t."DATE_UPDATE",t."USER_UPDATE",st.teur_tosefet from tosefot t
+ left join code_semel_tosefet st on st.code_semel_tosefet=t.code_semel_tosefet;
+
+
+create or replace force view prm_system_copy.v_users_for_action as
+select distinct a.seq_action_log,a.code_action,a.code_user_update,a.code_user_to_internal,a.seq_bakasha,
+       w.code_sug_workflow,w1.workflow_seq,
+       e.code_ezor_ovdim,e.teur_ezor_ovdim,
+       se.code_sug_ezor_ovdim,se.teur,
+       c.code_sug_action,c.is_maarechet,r.role_type,
+       w1.code_role_to,pu.code_user,pu.main_roll,
+       u.shem_prati || ' ' || u.shem_mishpacha shem_user
+          from action_log a
+       left join v_bakasha v
+            on v.SEQ_BAKASHA = a.seq_bakasha
+       left join code_action c
+            on c.code_action = a.code_action
+       left join workflow_2_sug_bakasha w
+            on w.code_sug_bakasha = v.code_sug_bakasha
+            and w.code_source = v.code_source
+       left join workflow w1
+            on w1.code_sug_workflow = w.code_sug_workflow
+            and w1.code_action = a.code_action
+       left join code_ezor_ovdim e
+            on e.code_ezor_ovdim = v.SEQ_EZOR_OVDIM
+       left join code_sug_ezor_ovdim se
+            on e.code_sug_ezor_ovdim = se.code_sug_ezor_ovdim
+       left join perm_user_role pu
+            on pu.code_role = w1.code_role_to
+       left join code_user u
+            on u.id_user = pu.code_user
+       left join code_role r
+            on r.code_role = w1.code_role_to
+       where u.pail_lo_pail = 1
+            and c.is_maarechet = 0
+            and a.code_user_update <> 0
+/*            and a.seq_bakasha = 26879
+            and a.code_action = 65 */
+            and a.seq_action_log =
+                (select max(t.seq_action_log)
+                from action_log t
+                where t.seq_bakasha = a.seq_bakasha
+                and t.code_action = a.code_action
+                )
+            /*and a.code_user_to_internal = pu.code_user*/
+            and not(r.role_type=2 and pu.code_user = a.code_user_update)
+       order by a.seq_bakasha,
+       a.code_action;
+
+
 create or replace function prm_system_copy.f_random_count_role(id_user number) return number is
   FunctionResult number;
 random_number number;
@@ -759,6 +3553,365 @@ begin
   return(random_number);
 end f_random_count_role;
 /
+
+create or replace force view prm_system_copy.v_users_for_actions as
+select seq_bakasha, code_action, code_department, seq_ezor_ovdim,
+       code_user, shem_user, code_role, role_type,
+       tipul_kodem, low_priority, nvl(count_role,0) count_role,
+       mispar_hachzarot, is_bodek_minahel, chelkiut, ezor_ovdim_priority, code_user_str, code_sug_workflow
+from
+(select distinct
+       v.seq_bakasha,p.SEQ_EZOR_OVDIM, r.code_department,c.teur_action,
+       w.code_sug_workflow,w1.workflow_seq,
+       w1.code_action,
+       c.code_sug_action, c.is_maarechet, r.role_type,
+       pu.code_user, pu.chelkiut, pu.code_role,
+       u.shem_prati || ' ' || u.shem_mishpacha shem_user,
+       '1,' || to_char(u.id_user) code_user_str,
+                        -- pu.chelkiut=0  > לא זמין;
+                        -- מופיע בעדיפות נמוכה
+                        -- ברשימת מטפלים פוטנציאליים
+       case when  pu.chelkiut=0 then 0 else 1 end as low_priority,
+       case when  nvl(r.code_department,0)<>6  or w1.code_action <> 115 /* ממתין לאישור בודק תשלומים */ then 0 else
+            (select count(*)
+             from action_log a2
+             where a2.seq_bakasha = v.seq_bakasha
+             and   a2.code_action = 49
+             and   a2.code_department = 6
+            ) end as mispar_hachzarot,
+       case when  nvl(r.code_department,0)<>6 or w1.code_action <> 115 /* ממתין לאישור בודק תשלומים */ then 0
+            when (exists (select r2.code_role
+               from perm_user_role pu2
+               left join code_role r2 on
+               r2.code_role = pu2.code_role
+               where pu2.code_user = pu.code_user
+               and   pu2.main_roll = 1
+               and   r2.role_type = 1))
+            and
+                 (exists (select r2.code_role
+               from perm_user_role pu2
+               left join code_role r2 on
+               r2.code_role = pu2.code_role
+               where pu2.code_user = pu.code_user
+               and   r2.role_type = 2)) then 1
+            else 0
+       end as is_bodek_minahel,
+       case /*when nvl(r.role_type,0) = 2 or--בודק; מתיחסים למספר תיקים*/
+          when nvl(r.code_department,0) = 7 then --עובדי ארכיב; מתיחסים למספר תיקים
+          f_random_count_role(pu.code_user) -- מספר תיקים רנדומלי
+            --עובדי ארכיב; מתיחסים למספר תיקים
+/*          (select
+                    count(a.code_user_to_internal)
+                    from action_log a
+                    left join code_action c on
+                    c.code_action = a.code_action
+                    where a.code_user_to_internal = pu.code_user
+                    and a.code_role = pu.code_role
+                    and a.date_do is null
+                    and c.is_status = 1
+                    and a.seq_action_log =
+                    (select max(a1.seq_action_log)
+                    from action_log a1
+                     left join code_action c1 on
+                    c1.code_action = a1.code_action
+                    where a1.seq_bakasha = a.seq_bakasha
+                    and a1.code_action <> 120
+                    and c1.is_status = 1
+                    )
+                    group by code_user_to_internal
+                    )*/
+         else
+                    1  --לא להתיחס למספר תיקים
+         end
+
+create or replace force view prm_system_copy.v_users_internal_and_external as
+select distinct t1.code_role,
+                '1,' || to_char(t.id_user) as code_user,
+                t.shem as shem,
+                null as seq_ezor_ovdim,
+                t.pail_lo_pail,
+                t1.main_roll
+  from perm_user_role t1
+  left join v_code_user t
+    on t1.code_user = t.id_user
+  left join code_role t2
+    on t1.code_role = t2.code_role
+  left join code_department t3
+    on t2.code_department = t3.code_department
+where (t.is_programmer = 0 or t.is_programmer is null)
+union all
+select null as code_role,
+       '2,' || to_char(t2.seq_contacts_ministries) as code_user,
+       t2.first_name || ' ' || t2.last_name || '| ' || t4.teur_ezor_ovdim as shem,
+       t2.seq_ezor_ovdim,
+       1,
+       1
+  from contacts_ministries t2
+  left join code_ezor_ovdim t4
+    on t2.seq_ezor_ovdim = t4.seq_ezor_ovdim;
+
+
+create or replace force view prm_system_copy.v_users_step_back as
+select t1.code_role,
+                '1,' || to_char(t.id_user) as code_user,
+                t.shem,
+                null as seq_ezor_ovdim,
+                t.pail_lo_pail,
+                t1.main_roll
+  from perm_user_role t1
+  left join v_code_user t
+    on t1.code_user = t.id_user
+  left join code_role t2
+    on t1.code_role = t2.code_role
+  left join code_department t3
+    on t2.code_department = t3.code_department;
+
+
+create or replace force view prm_system_copy.v_user_role_time_bakashot as
+select dates2.seq_bakasha,
+       dates2.next_user_date, dates2.prev_user_date,
+       min(dates2.date_action) min_date_action,
+       dates2.shem, dates2.id_user, dates2.code_role, dates2.code_teur_bakasha, dates2.code_sug_bakasha,
+       dates2.code_department, dates2.teur_department,
+       decode(dates2.next_user_date - min(dates2.date_action),null,
+             (max(dates2.date_action) - min(dates2.date_action) - pk_prm_utils.get_holidays_number(min(dates2.date_action),max(dates2.date_action))),
+              dates2.next_user_date - min(dates2.date_action)   - pk_prm_utils.get_holidays_number(min(dates2.date_action),dates2.next_user_date)) hefresh
+from
+(select dates1.seq_bakasha, dates1.code_teur_bakasha, dates1.code_sug_bakasha,
+       dates1.code_department, dates1.teur_department,
+       dates1.date_action, dates1.shem, dates1.id_user, dates1.code_role,
+       dates1.next_user_date,
+       dates1.prev_user_date,
+       dates1.end_date, dates1.begin_date
+from
+(select a.seq_bakasha, a.code_department, cd.teur_department, ca.teur_action,
+csb.code_teur_bakasha, csb.code_sug_bakasha,
+cu.id_user, trim(cu.shem_prati) || ' ' || trim(cu.shem_mishpacha) shem,
+a.date_action, a.code_role,
+(select max(a1.date_action)
+     from action_log a1, code_sug_bakasha sb1
+     where a1.seq_bakasha = a.seq_bakasha
+     and b.code_sug_bakasha = sb1.code_sug_bakasha
+     and a1.code_action = sb1.code_first_action_gimlaot
+     ) begin_date,
+(select max(a2.date_action)
+     from action_log a2, code_sug_bakasha sb2
+     where a2.seq_bakasha = a.seq_bakasha
+     and b.code_sug_bakasha = sb2.code_sug_bakasha
+     and a2.code_action = sb2.code_action_confirm
+    ) end_date,
+(select min(a3.date_action)
+     from action_log a3
+     where a3.seq_bakasha = a.seq_bakasha
+     and a3.code_user_to_internal <> a.code_user_to_internal
+     and a3.seq_action_log > a.seq_action_log
+     ) next_user_date,
+(select max(a3.date_action)
+     from action_log a3
+     where a3.seq_bakasha = a.seq_bakasha
+     and a3.code_user_to_internal <> a.code_user_to_internal
+     and a3.seq_action_log < a.seq_action_log
+     ) prev_user_date
+from action_log a
+left join v_bakasha b
+on b.seq_bakasha = a.seq_bakasha
+left join code_action ca
+on ca.code_action = a.code_action
+left join code_department cd
+on cd.code_department = a.code_department
+/*left join workflow_2_sug_bakasha w2 on
+w2.code_source = b.code_source
+and w2.code_sug_bakasha = b.code_sug_bakasha
+left join workflow w
+on w.code_sug_workflow = w2.code_sug_workflow
+left join code_role cr on
+cr.code_role = w.code_role_to*/
+left join code_user cu on
+cu.id_user = a.code_user_to_internal
+left join code_sug_bakasha csb on
+csb.code_sug_bakasha = b.code_sug_bakasha
+where ca.is_external <> 1
+and ca.is_status = 1
+and ca.code_sug_action in(1,2,3)
+--and cu.id_user=138
+--and w.next_action = a.code_action
+--and not(a.code_user_update=0 and ca.code_sug_action>1)
+--and not(a.code_user_update is not null and ca.code_sug_action>1)
+and cu.pail_lo_pail = 1
+and cu.is_programmer <> 1) dates1
+where dates1.end_date is not null
+and dates1.end_date >= to_date('01/01/2018','dd/mm/yyyy')
+and dates1.end_date < to_date('01/04/2018','dd/mm/yyyy')
+--and dates1.end_date <= sysdate
+--and dates1.date_action >= dates1.begin_date
+--and dates1.date_action <= dates1.end_date
+) dates2
+group by dates2.seq_bakasha,
+       dates2.prev_user_date,
+       dates2.next_user_date,
+       dates2.shem, dates2.id_user, dates2.code_role,
+       dates2.code_teur_bakasha, dates2.code_sug_bakasha,
+       dates2.code_department, dates2.teur_department
+order by dates2.seq_bakasha,
+       dates2.prev_user_date nulls first,
+       dates2.next_user_date nulls last,
+       dates2.shem, dates2.id_user, dates2.code_role,
+       dates2.code_teur_bakasha, dates2.code_sug_bakasha,
+       dates2.code_department, dates2.teur_department
+;
+
+
+create or replace force view prm_system_copy.v_vetek_llo_maskoret as
+select "CODE_TYPE_VETEK","TEUR_TYPE_VETEK" from code_type_vetek t where t.code_type_vetek<>6 order by t.code_type_vetek;
+
+
+create or replace force view prm_system_copy.v_workflow_acion_details as
+select t.workflow_seq, t.code_action, t.next_action, t.is_automatic, t.days, t.code_role_to, t.code_sug_workflow, t.order_wf, t.step, t.dilug,
+     t1.teur_action, t1.button_text, t1.is_new, t1.is_status, t1.code_department, t1.is_display, t1.order_action,t1.button_file_name,
+     t1.code_sug_action, t1.is_maarechet,
+     t2.code_sug_action code_sug_next_action,t2.teur_action teur_next_action
+    from workflow t
+    left join code_action t1
+    on t.code_action = t1.code_action
+    left join code_action t2
+    on t.next_action = t2.code_action;
+
+
+create or replace force view prm_system_copy.v_workflow_action_details as
+select t.workflow_seq, t.code_action, t.next_action, t.is_automatic, t.days, t.code_role_to, t.code_sug_workflow, t.order_wf ,t1.is_status, t1.code_sug_action
+  from workflow t
+  left join code_action t1 on t.code_action = t1.code_action;
+
+
+create or replace force view prm_system_copy.v__bi_bakasha_last_status as
+select t.code_sug_bakasha,
+       t.code_makor,
+       t.mispar_zehut,
+       trunc(nvl(t.taarich_prisha,to_date('01/01/1900','DD/MM/YYYY'))) taarich_prisha,
+       t.seq_bakasha,
+       t.seq_prisha,
+       t.code_source,
+       trunc(t.date_action) date_action,
+       t.teur_action,
+       t.is_external,
+       t.seq_action_log,
+       t.code_action,
+       t.code_user_update,
+       t.remarks,
+       nvl(t.code_user_to_internal,-1) code_user_to_internal,
+       t.date_to_do,
+       t.date_do,
+       t.code_user_to_external,
+       t.is_new,
+       t.seq_porshim,
+       t.seq_ezor_ovdim,
+       nvl(t.code_seif_prisha,-1) code_seif_prisha,
+       nvl(t.code_department_action,-1) code_department_action,
+       t.code_sug_workflow,
+       nvl((case when t.code_action=172 then -2 else t.code_role_to end),-1) code_role_to ,
+       t.is_automatic,
+       nvl(t.code_merge_bakasha,-1) code_merge_bakasha,
+       trunc(t.date_bakasha) date_bakasha,
+       t.gimla_number,
+       t.w_code_document,
+       t.is_active,
+       nvl(t.code_bakasha_detail,-1) code_bakasha_detail
+  from BI_bakasha_last_status t;
+
+
+create or replace force view prm_system_copy.v__bi_code_action as
+select a.code_action,
+       a.teur_action,
+       a.button_text,
+       a.is_new,
+       a.is_status,
+       a.temp_old_code,
+       nvl(a.code_department,-1) code_department,
+       a.is_display,
+       a.order_action,
+       a.button_file_name,
+       a.temp_previous_action,
+       a.code_sug_action,
+       a.is_maarechet,
+       a.is_external
+  from code_action a;
+
+
+create or replace force view prm_system_copy.v__bi_code_bakasha_detail as
+select "CODE_BAKASHA_DETAIL","TEUR_BAKASHA_DETAIL","CODE_SUG_BAKASHA","CODE_BAKASHA_HILAN" from code_bakasha_detail
+union
+select -1,'אין תאור', -1,null from dual;
+
+
+create or replace force view prm_system_copy.v__bi_code_merge_bakasha as
+select c.code_merge_bakasha, c.teur_merge_bakasha from code_merge_bakasha c
+union
+select -1,'שוטף'from dual;
+
+
+create or replace force view prm_system_copy.v__bi_code_role as
+select c.code_role,
+       c.teur_role,
+       c.code_department,
+       c.code_action_finished,
+       c.role_type
+  from code_role c
+union
+select -1, '', -1, -1, -1
+  from dual
+union
+select -2, 'מטפל שגויים', -1, -1, -2
+  from dual;
+
+
+create or replace force view prm_system_copy.v__bi_code_seif_prisha as
+select "CODE_SEIF_MARKAVA","TEUR_SEIF_PRISHA","PAIL","CODE_SEIF_PRISHA","HAKPAA","SEQ_PERM_FORM","CODE_GROUP_PRISHA","CODE_REPORT_GROUP_PRISHA","SUG_GIMLA_HILAN" from code_seif_prisha
+union
+select null,'אין מידע',null,-1,null,null,null,null,null
+from dual;
+
+
+create or replace force view prm_system_copy.v__bi_code_user as
+select t.id_user,
+       t.shem_mishpacha,
+       t.shem_prati,
+       t.email,
+       t.pail_lo_pail,
+       t.kidomet_telefom,
+       t.telefon_number,
+       t.kidomet_nayad,
+       t.nayad_number,
+       t.fax_kidomet,
+       t.fax_number,
+       t.mis_zehut,
+       t.message_to_user,
+       t.user_name_active_directory,
+       t.is_programmer,
+       t.teur_tafkid,
+       t.sign_img_path,
+       t.code_min
+  from code_user t
+union
+select -1,
+       'אין נתונים',
+       'אין נתונים',
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null,
+       null
+  from dual t;
+
 
 create or replace package prm_system_copy.convert_data_Hishtatfut_2_mpm is
   -------------------------------------------------------
