@@ -82,7 +82,7 @@ function compareRow(pdfRow, datRow, warnings) {
     if (!ok) {
       diffs.push({
         fieldName: "סוג תקופה",
-        pdfValue: `${SABBATICAL_TKUFA_CODE} (שבתון)`,
+        pdfValue: "שבתון",
         datValue:
           `${datRow.sugTkufa} (${SUG_TKUFA[datRow.sugTkufa] ?? "לא מוכר"}) ` +
           `+ זכויות ${datRow.sugZchuyot}`,
@@ -103,7 +103,7 @@ function compareRow(pdfRow, datRow, warnings) {
     } else if (!allowed.has(datRow.sugTkufa)) {
       diffs.push({
         fieldName: "סוג תקופה",
-        pdfValue: `${[...allowed].join("/")} (${pdfRow.tkufaLabel})`,
+        pdfValue: pdfRow.tkufaLabel,
         datValue: `${datRow.sugTkufa} (${SUG_TKUFA[datRow.sugTkufa] ?? "לא מוכר"})`,
       });
     }
@@ -133,7 +133,7 @@ function compareRow(pdfRow, datRow, warnings) {
   } else if (!allowedZ.has(datRow.sugZchuyot)) {
     diffs.push({
       fieldName: "סוג זכויות",
-      pdfValue: `${[...allowedZ].join("/")} (${pdfRow.zchuyotLabel})`,
+      pdfValue: pdfRow.zchuyotLabel,
       datValue: `${datRow.sugZchuyot} (${SUG_ZCHUYOT[datRow.sugZchuyot] ?? "לא מוכר"})`,
     });
   }
